@@ -15,6 +15,8 @@ INCLUDE(GNUInstallDirs)
 ####### local cmake modules #######
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules")
 
+add_subdirectory("${PROJECT_SOURCE_DIR}/DBoW2/")
+
 #######################
 # VERSION
 #######################
@@ -1733,3 +1735,5 @@ MESSAGE(SEND_ERROR "No graph optimizer found! You should have at least one of th
 ENDIF(NOT GTSAM_FOUND AND NOT G2O_FOUND AND NOT WITH_TORO AND NOT WITH_CERES AND NOT CERES_FOUND)
 
 # vim: set et ft=cmake fenc=utf-8 ff=unix sts=0 sw=2 ts=2 :
+
+#file(COPY demo/images DESTINATION ${CMAKE_BINARY_DIR}/)

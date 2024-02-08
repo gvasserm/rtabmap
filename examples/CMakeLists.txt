@@ -1,5 +1,6 @@
 
 ADD_SUBDIRECTORY( BOWMapping )
+ADD_SUBDIRECTORY( BOWDemo )
 
 IF(TARGET rtabmap_gui)
    ADD_SUBDIRECTORY( RGBDMapping )
