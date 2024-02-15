@@ -145,6 +145,7 @@ public:
 	Transform getPose(int locationId) const;
 	Transform getMapCorrection() const {return _mapCorrection;}
 	const Memory * getMemory() const {return _memory;}
+	Memory * getMemoryC() const {return _memory;}
 	float getGoalReachedRadius() const {return _goalReachedRadius;}
 	float getLocalRadius() const {return _localRadius;}
 	const Transform & getLastLocalizationPose() const {return _lastLocalizationPose;}

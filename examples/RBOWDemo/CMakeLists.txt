@@ -15,23 +15,19 @@ if(NOT internal)
 	FIND_PACKAGE(RTABMap REQUIRED COMPONENTS gui)
 endif()
 
-IF(QT4_FOUND OR Qt5_FOUND OR Qt6_FOUND)
-    SET(moc_srcs MapBuilder.h)
-ENDIF()
-
-ADD_EXECUTABLE(rgbd_mapping main.cpp ${moc_srcs})
+ADD_EXECUTABLE(rbow_demo main.cpp)
   
-TARGET_LINK_LIBRARIES(rgbd_mapping rtabmap::gui)
+TARGET_LINK_LIBRARIES(rbow_demo rtabmap::gui)
 
 SET_TARGET_PROPERTIES(
-     rgbd_mapping
+  rbow_demo
    PROPERTIES
 	 AUTOUIC ON
-     AUTOMOC ON
+    AUTOMOC ON
      AUTORCC ON
 )
 
 if(internal)
-  SET_TARGET_PROPERTIES( rgbd_mapping 
-    PROPERTIES OUTPUT_NAME ${PROJECT_PREFIX}-rgbd_mapping)
+  SET_TARGET_PROPERTIES( rbow_demo 
+    PROPERTIES OUTPUT_NAME ${PROJECT_PREFIX}-rbow_demo)
 endif(internal)

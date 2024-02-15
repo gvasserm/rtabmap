@@ -10,38 +10,38 @@
 #include <vector>
 
 // DBoW2
-//#include "DBoW2/DBoW2/DBoW2.h" // defines OrbVocabulary and OrbDatabase
+// #include "DBoW2/DBoW2/DBoW2.h" // defines OrbVocabulary and OrbDatabase
 #include "../../DBoW2/DBoW2/BowVector.h"
 #include "../../DBoW2/DBoW2/FeatureVector.h"
 #include "../../DBoW2/DBoW2/ORBVocabulary.h"
+#include "../../DBoW2/DBoW2/Converter.h"
 
 // OpenCV
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 
-
 using namespace DBoW2;
 using namespace std;
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void loadFeatures(vector<vector<cv::Mat > > &features);
+void loadFeatures(vector<vector<cv::Mat>> &features);
 void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out);
-//void testVocCreation(const vector<vector<cv::Mat > > &features);
-//void testDatabase(const vector<vector<cv::Mat > > &features);
+// void testVocCreation(const vector<vector<cv::Mat > > &features);
+// void testDatabase(const vector<vector<cv::Mat > > &features);
 
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 // number of training images
 const int NIMAGES = 4;
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void wait()
 {
-  cout << endl << "Press enter to continue" << endl;
+  cout << endl
+       << "Press enter to continue" << endl;
   getchar();
 }
 
@@ -49,40 +49,67 @@ void wait()
 
 void testVoc()
 {
+
+  cv::Mat im1 = cv::imread("data/samples/1.jpg");
+  cv::Mat im2 = cv::imread("data/samples/1.jpg");
+
+  cv::Ptr<cv::ORB> orb = cv::ORB::create();
+
+  std::vector<cv::KeyPoint> keypoints1, keypoints2;
+  cv::Mat features1, features2;
+  orb->detect(im1, keypoints1);
+  orb->compute(im1, keypoints1, features1);
+
+  orb->detect(im2, keypoints2);
+  orb->compute(im2, keypoints2, features2);
+
+  vector<cv::Mat> vCurrentDesc1 = Converter::toDescriptorVector(features1);
+  vector<cv::Mat> vCurrentDesc2 = Converter::toDescriptorVector(features2);
+
   std::string strVocFile = "/home/gvasserm/dev/rtabmap/ORBvoc.txt";
   ORBVocabulary *mpVocabulary = new ORBVocabulary();
-    bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
-    if(!bVocLoad)
-    {
-        cerr << "Wrong path to vocabulary. " << endl;
-        cerr << "Falied to open at: " << strVocFile << endl;
-        exit(-1);
-    }
-    cout << "Vocabulary loaded!" << endl << endl;
-    return;
-}
+  bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+  if (!bVocLoad)
+  {
+    cerr << "Wrong path to vocabulary. " << endl;
+    cerr << "Falied to open at: " << strVocFile << endl;
+    exit(-1);
+  }
+  cout << "Vocabulary loaded!" << endl
+       << endl;
 
+  //std::map<WordId, WordValue>
+  //WordID - ID od the word
+  //WordValue - Value TF-IDF
+  DBoW2::BowVector mBowVec1, mBowVec2;
+  //std::map<NodeId, std::vector<unsigned int> >
+  DBoW2::FeatureVector mFeatVec1, mFeatVec2;
+
+  mpVocabulary->transform(vCurrentDesc1, mBowVec1, mFeatVec1, 4);
+  mpVocabulary->transform(vCurrentDesc2, mBowVec2, mFeatVec2, 4);
+  return;
+}
 
 int main()
 {
 
   testVoc();
 
-  vector<vector<cv::Mat > > features;
-  loadFeatures(features);
+  //vector<vector<cv::Mat>> features;
+  //loadFeatures(features);
 
-  //testVocCreation(features);
+  // testVocCreation(features);
 
-  //wait();
+  // wait();
 
-  //testDatabase(features);
+  // testDatabase(features);
 
   return 0;
 }
 
 // ----------------------------------------------------------------------------
 
-void loadFeatures(vector<vector<cv::Mat > > &features)
+void loadFeatures(vector<vector<cv::Mat>> &features)
 {
   features.clear();
   features.reserve(NIMAGES);
@@ -90,7 +117,7 @@ void loadFeatures(vector<vector<cv::Mat > > &features)
   cv::Ptr<cv::ORB> orb = cv::ORB::create();
 
   cout << "Extracting ORB features..." << endl;
-  for(int i = 0; i < NIMAGES; ++i)
+  for (int i = 0; i < NIMAGES; ++i)
   {
     stringstream ss;
     ss << "images/image" << i << ".png";
@@ -102,7 +129,7 @@ void loadFeatures(vector<vector<cv::Mat > > &features)
 
     orb->detectAndCompute(image, mask, keypoints, descriptors);
 
-    features.push_back(vector<cv::Mat >());
+    features.push_back(vector<cv::Mat>());
     changeStructure(descriptors, features.back());
   }
 }
@@ -113,7 +140,7 @@ void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out)
 {
   out.resize(plain.rows);
 
-  for(int i = 0; i < plain.rows; ++i)
+  for (int i = 0; i < plain.rows; ++i)
   {
     out[i] = plain.row(i);
   }
@@ -123,7 +150,7 @@ void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out)
 /*
 void testVocCreation(const vector<vector<cv::Mat > > &features)
 {
-  // branching factor and depth levels 
+  // branching factor and depth levels
   const int k = 9;
   const int L = 3;
   const WeightingType weight = TF_IDF;
@@ -147,7 +174,7 @@ void testVocCreation(const vector<vector<cv::Mat > > &features)
     for(int j = 0; j < NIMAGES; j++)
     {
       voc.transform(features[j], v2);
-      
+
       double score = voc.score(v1, v2);
       cout << "Image " << i << " vs Image " << j << ": " << score << endl;
     }
@@ -167,10 +194,10 @@ void testDatabase(const vector<vector<cv::Mat > > &features)
 
   // load the vocabulary from disk
   OrbVocabulary voc("small_voc.yml.gz");
-  
+
   OrbDatabase db(voc, false, 0); // false = do not use direct index
   // (so ignore the last param)
-  // The direct index is useful if we want to retrieve the features that 
+  // The direct index is useful if we want to retrieve the features that
   // belong to some vocabulary node.
   // db creates a copy of the vocabulary, we may get rid of "voc" now
 
@@ -192,7 +219,7 @@ void testDatabase(const vector<vector<cv::Mat > > &features)
   {
     db.query(features[i], ret, 4);
 
-    // ret[0] is always the same image in this case, because we added it to the 
+    // ret[0] is always the same image in this case, because we added it to the
     // database. ret[1] is the second best match.
 
     cout << "Searching for Image " << i << ". " << ret << endl;
@@ -205,8 +232,8 @@ void testDatabase(const vector<vector<cv::Mat > > &features)
   cout << "Saving database..." << endl;
   db.save("small_db.yml.gz");
   cout << "... done!" << endl;
-  
-  // once saved, we can load it again  
+
+  // once saved, we can load it again
   cout << "Retrieving database once again..." << endl;
   OrbDatabase db2("small_db.yml.gz");
   cout << "... done! This is: " << endl << db2 << endl;
@@ -215,5 +242,3 @@ void testDatabase(const vector<vector<cv::Mat > > &features)
 */
 
 // ----------------------------------------------------------------------------
-
-

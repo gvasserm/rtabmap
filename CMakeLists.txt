@@ -15,7 +15,11 @@ INCLUDE(GNUInstallDirs)
 ####### local cmake modules #######
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules")
 
-add_subdirectory("${PROJECT_SOURCE_DIR}/DBoW2/")
+#("${PROJECT_SOURCE_DIR}/DBoW2/")
+
+include_directories("/home/gvasserm/dev/rtabmap/DBoW2/DBoW2"
+            "/home/gvasserm/dev/rtabmap/DBoW2/DUtils"
+)
 
 #######################
 # VERSION
@@ -1115,6 +1119,7 @@ IF(QT4_FOUND OR Qt5_FOUND OR Qt6_FOUND)
    ELSE()
       set(CONF_QT_VERSION 6)
    ENDIF()
+   #target_link_libraries(rtabmap INTERFACE "/home/gvasserm/dev/rtabmap/DBoW2/lib/libDBoW2.so" rtabmap_utilite rtabmap_core rtabmap_gui)
    target_link_libraries(rtabmap INTERFACE rtabmap_utilite rtabmap_core rtabmap_gui)
 ELSE()
    set(CONF_WITH_GUI OFF)
@@ -1736,4 +1741,6 @@ ENDIF(NOT GTSAM_FOUND AND NOT G2O_FOUND AND NOT WITH_TORO AND NOT WITH_CERES AND
 
 # vim: set et ft=cmake fenc=utf-8 ff=unix sts=0 sw=2 ts=2 :
 
+
+#target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 #file(COPY demo/images DESTINATION ${CMAKE_BINARY_DIR}/)

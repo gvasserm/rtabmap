@@ -129,6 +129,13 @@ Memory::Memory(const ParametersMap & parameters) :
 	_parallelized(Parameters::defaultKpParallelized()),
 	_registrationVis(0)
 {
+
+	//=======Added init vocabulary (Genadiy)=====
+	//_vocabulary = new DBoW2::ORBVocabulary();
+	// std::string strVocFile = "/home/gvasserm/dev/rtabmap/ORBvoc.txt";
+  	// bool bVocLoad = _vocabulary->loadFromTextFile(strVocFile);
+	//============
+	
 	_feature2D = Feature2D::create(parameters);
 	_vwd = new VWDictionary(parameters);
 	_registrationPipeline = Registration::create(parameters);
@@ -5357,9 +5364,11 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 		}
 
 		// Quantization to vocabulary
+		//BOW_DEBUG - add new words to bow
 		wordIds = _vwd->addNewWords(descriptorsForQuantization, id);
 
 		// Set ID -1 to features not used for quantization
+		//Should not enter
 		if(wordIds.size() < keypoints.size())
 		{
 			std::vector<int> allWordIds;
@@ -5390,6 +5399,7 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 		UDEBUG("id %d is a bad signature", id);
 	}
 
+	//words - <wordID, indices>
 	std::multimap<int, int> words;
 	std::vector<cv::KeyPoint> wordsKpts;
 	std::vector<cv::Point3f> words3D;
@@ -5499,7 +5509,8 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 			if(	!data.cameraModels().empty() &&
 				data.cameraModels()[0].imageHeight()>0 &&
 				data.cameraModels()[0].imageWidth()>0)
-			{
+			{		if(stats) stats->addStatistic(Statistics::kTimingMemMarkers_detection(), t*1000.0f);
+
 				// decimate from RGB image size
 				int targetSize = data.cameraModels()[0].imageHeight() / _imagePreDecimation;
 				if(targetSize >= data.depthRaw().rows)

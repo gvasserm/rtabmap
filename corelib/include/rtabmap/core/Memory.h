@@ -44,6 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <opencv2/features2d/features2d.hpp>
 #include <pcl/pcl_config.h>
 
+#include "ORBVocabulary.h"
+
 namespace rtabmap {
 
 class Signature;
@@ -240,6 +242,7 @@ public:
 
 	//keypoint stuff
 	const VWDictionary * getVWDictionary() const;
+	VWDictionary * getVWDictionaryC() const {return _vwd;}
 
 	// RGB-D stuff
 	void getMetricConstraints(
@@ -293,6 +296,9 @@ protected:
 	DBDriver * _dbDriver;
 
 private:
+
+	DBoW2::ORBVocabulary *_vocabulary = nullptr;
+	
 	// parameters
 	ParametersMap parameters_;
 	float _similarityThreshold;
