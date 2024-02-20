@@ -911,6 +911,7 @@ std::list<int> VWDictionary::addNewWords(
 {
 	UDEBUG("id=%d descriptors=%d", signatureId, descriptorsIn.rows);
 	UTimer timer;
+	//mapping kp to wordID
 	std::list<int> wordIds;
 	if(descriptorsIn.rows == 0 || descriptorsIn.cols == 0)
 	{

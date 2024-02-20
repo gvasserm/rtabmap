@@ -64,6 +64,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <opencv2/imgproc/types_c.h>
 #include <rtabmap/core/LocalGridMaker.h>
 
+#include "DBoW2/Converter.h"
+
 namespace rtabmap {
 
 const int Memory::kIdStart = 0;
@@ -132,7 +134,7 @@ Memory::Memory(const ParametersMap & parameters) :
 
 	//=======Added init vocabulary (Genadiy)=====
 	_vocabulary = new DBoW2::ORBVocabulary();
-	std::string strVocFile = "/home/gvasserm/dev/rtabmap/ORBvoc.txt";
+	std::string strVocFile = "/home/gvasserm/dev/ORB_SLAM2/Vocabulary/ORBvoc.txt";
   	bool bVocLoad = _vocabulary->loadFromTextFile(strVocFile);
 	if(!bVocLoad)
     {
@@ -171,6 +173,24 @@ Memory::Memory(const ParametersMap & parameters) :
 	_localMapMaker = new LocalGridMaker(parameters);
 	_markerDetector = new MarkerDetector(parameters);
 	this->parseParameters(parameters);
+}
+
+std::list<int> Memory::getWordsDBoW(const cv::Mat &descriptorsIn, DBoW2::BowVector &bowVector)
+{
+
+	std::vector<cv::Mat> descVector = DBoW2::toDescriptorVector(descriptorsIn);
+	DBoW2::FeatureVector featVec;
+	_vocabulary->transform(descVector, bowVector, featVec, 4);
+
+    std::list<int> words;
+    for(size_t i=0; i<descVector.size();++i)
+    {
+        int w = _vocabulary->transform(descVector[i]);
+        words.push_back(w);
+    }
+
+	return words;
+
 }
 
 bool Memory::init(const std::string & dbUrl, bool dbOverwritten, const ParametersMap & parameters, bool postInitClosingEvents)
@@ -5364,6 +5384,9 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 	}
 
 	std::list<int> wordIds;
+	DBoW2::BowVector bowVector;
+	std::list<int> wordIds_DBoW;
+	
 	if(descriptors.rows)
 	{
 		// In case the number of features we want to do quantization is lower
@@ -5421,7 +5444,9 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 		// Quantization to vocabulary
 		//-----------------------BOW-DEBUG-START-----------------
 		//-----------------------Add-New-Words-------------------
+		// wordIds - list<int> mapping kps to wordIds
 		wordIds = _vwd->addNewWords(descriptorsForQuantization, id);
+		wordIds_DBoW = getWordsDBoW(descriptorsForQuantization, bowVector);
 
 		// Set ID -1 to features not used for quantization
 		//Should not enter
@@ -5970,6 +5995,7 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 						compressedUserData));
 	}
 
+	s->setDBoWWords(bowVector);
 	s->setWords(words, wordsKpts,
 			_reextractLoopClosureFeatures?std::vector<cv::Point3f>():words3D,
 			_reextractLoopClosureFeatures?cv::Mat():wordsDescriptors);

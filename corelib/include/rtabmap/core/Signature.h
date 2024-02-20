@@ -42,6 +42,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/core/SensorData.h>
 #include <rtabmap/core/Link.h>
 
+#include "DBoW2/BowVector.h"
+#include "DBoW2/FeatureVector.h"
+
 namespace rtabmap
 {
 
@@ -106,6 +109,9 @@ public:
 	void removeAllWords();
 	void changeWordsRef(int oldWordId, int activeWordId);
 	void setWords(const std::multimap<int, int> & words, const std::vector<cv::KeyPoint> & keypoints, const std::vector<cv::Point3f> & words3, const cv::Mat & descriptors);
+	
+	void setDBoWWords(const DBoW2::BowVector &bowvector);
+	
 	bool isEnabled() const {return _enabled;}
 	void setEnabled(bool enabled) {_enabled = enabled;}
 	const std::multimap<int, int> & getWords() const {return _words;}
@@ -139,6 +145,14 @@ public:
 
 	unsigned long getMemoryUsed(bool withSensorData=true) const; // Return memory usage in Bytes
 
+	//-----------------------BOW-DEBUG-START-----------------
+	//-----------------------Signature-START-----------------
+	DBoW2::BowVector _bowvector;
+	DBoW2::FeatureVector _featVec;
+	std::multimap<int, int> _wordsDBoW; // word <id, keypoint index>
+	//-------------------------BOW-DEBUG-END-----
+	//-----------------------Signature-END-----------------
+
 private:
 	int _id;
 	int _mapId;
@@ -165,7 +179,6 @@ private:
 	Transform _pose;
 	Transform _groundTruthPose;
 	std::vector<float> _velocity;
-
 	SensorData _sensorData;
 };
 

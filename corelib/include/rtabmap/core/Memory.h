@@ -74,6 +74,8 @@ public:
 	Memory(const ParametersMap & parameters = ParametersMap());
 	virtual ~Memory();
 
+	std::list<int> getWordsDBoW(const cv::Mat & descriptorsIn, DBoW2::BowVector &bowVector);
+
 	virtual void parseParameters(const ParametersMap & parameters);
 	virtual const ParametersMap & getParameters() const {return parameters_;}
 	bool update(const SensorData & data,

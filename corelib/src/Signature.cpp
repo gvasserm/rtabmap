@@ -287,6 +287,12 @@ void Signature::setWords(const std::multimap<int, int> & words,
 	_wordsDescriptors = descriptors.clone();
 }
 
+void Signature::setDBoWWords(const DBoW2::BowVector &bowvector)
+{
+	//UASSERT(!bowvector.empty());
+	_bowvector = bowvector;
+}
+
 bool Signature::isBadSignature() const
 {
 	return _words.size()-_invalidWordsCount <= 0;
