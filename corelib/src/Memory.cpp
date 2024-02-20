@@ -131,9 +131,16 @@ Memory::Memory(const ParametersMap & parameters) :
 {
 
 	//=======Added init vocabulary (Genadiy)=====
-	//_vocabulary = new DBoW2::ORBVocabulary();
-	// std::string strVocFile = "/home/gvasserm/dev/rtabmap/ORBvoc.txt";
-  	// bool bVocLoad = _vocabulary->loadFromTextFile(strVocFile);
+	_vocabulary = new DBoW2::ORBVocabulary();
+	std::string strVocFile = "/home/gvasserm/dev/rtabmap/ORBvoc.txt";
+  	bool bVocLoad = _vocabulary->loadFromTextFile(strVocFile);
+	if(!bVocLoad)
+    {
+        cerr << "Wrong path to vocabulary. " << endl;
+        cerr << "Falied to open at: " << strVocFile << endl;
+        exit(-1);
+    }
+    cout << "Vocabulary loaded!" << endl << endl;
 	//============
 	
 	_feature2D = Feature2D::create(parameters);
@@ -227,7 +234,7 @@ bool Memory::init(const std::string & dbUrl, bool dbOverwritten, const Parameter
 	loadDataFromDb(postInitClosingEvents);
 
 	if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit(RtabmapEventInit::kInitialized));
-
+	
 	return success;
 }
 
@@ -378,6 +385,8 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 		++_idMapCount;
 
 		// Now load the dictionary if we have a connection
+		//---------------------BOW-DEBUG-START-----------------
+		//---------------------Loading-DICT-START-------------------
 		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit("Loading dictionary..."));
 		UDEBUG("Loading dictionary...");
 		if(loadAllNodesInWM)
@@ -481,6 +490,9 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 
 	UDEBUG("ids start with %d", _idCount+1);
 	UDEBUG("map ids start with %d", _idMapCount);
+
+	//-----------------------BOW-DEBUG-END-----------------
+	//---------------------Loading-DICT-END------------------
 }
 
 void Memory::close(bool databaseSaved, bool postInitClosingEvents, const std::string & ouputDatabasePath)
@@ -1080,6 +1092,9 @@ void Memory::addSignatureToStm(Signature * signature, const cv::Mat & covariance
 		}
 		++_signaturesAdded;
 
+		//--------------------------BOW-DEBUG-START-----------------
+		//----------------------Signatures-toBoW-START------------------
+		//Here the sigantures are converted to BoW
 		if(_vwd)
 		{
 			UDEBUG("%d words ref for the signature %d (weight=%d)", signature->getWords().size(), signature->id(), signature->getWeight());
@@ -1088,6 +1103,9 @@ void Memory::addSignatureToStm(Signature * signature, const cv::Mat & covariance
 		{
 			signature->setEnabled(true);
 		}
+
+		//---------------------------BOW-DEBUG-END-----------------
+		//----------------------Signatures-toBoW-END------------------
 	}
 
 	UDEBUG("time = %fs", timer.ticks());
@@ -1865,6 +1883,10 @@ void Memory::clear()
  * Important: Assuming that all other ids are under 'signature' id.
  * If an error occurs, the result is empty.
  */
+
+//--------------------------BOW-DEBUG-START-----------------
+//----------------------Likelihood-START------------------
+//The likelihood is computed for BoW
 std::map<int, float> Memory::computeLikelihood(const Signature * signature, const std::list<int> & ids)
 {
 	if(!_tfIdfLikelihoodUsed)
@@ -1981,6 +2003,8 @@ std::map<int, float> Memory::computeLikelihood(const Signature * signature, cons
 		return likelihood;
 	}
 }
+//--------------------------BOW-DEBUG-END-----------------
+//----------------------Likelihood-END------------------
 
 // Weights of the signatures in the working memory <signature id, weight>
 std::map<int, int> Memory::getWeights() const
@@ -2466,6 +2490,9 @@ void Memory::moveToTrash(Signature * s, bool keepLinkedToGraph, std::list<int> *
 			removeVirtualLinks(s->id());
 		}
 
+		//-------------------------BOW-DEBUG-START-----------------
+		//-------------------------Remove-Words----------------
+
 		this->disableWordsRef(s->id());
 		if(!keepLinkedToGraph && _vwd->isIncremental())
 		{
@@ -2487,6 +2514,9 @@ void Memory::moveToTrash(Signature * s, bool keepLinkedToGraph, std::list<int> *
 				}
 			}
 		}
+
+		//-------------------------BOW-DEBUG-END-----------------
+		//-------------------------Remove-Words----------------
 
 		_workingMem.erase(s->id());
 		_stMem.erase(s->id());
@@ -3568,6 +3598,9 @@ void Memory::dumpMemory(std::string directory) const
 	this->dumpMemoryTree((directory + "/DumpMemoryTree.txt").c_str());
 }
 
+//-----------------------BOW-DEBUG-START-----------------
+//-------------------------Dump Dict----------------
+
 void Memory::dumpDictionary(const char * fileNameRef, const char * fileNameDesc) const
 {
 	if(_vwd)
@@ -3575,6 +3608,9 @@ void Memory::dumpDictionary(const char * fileNameRef, const char * fileNameDesc)
 		_vwd->exportDictionary(fileNameRef, fileNameDesc);
 	}
 }
+
+//-------------------------BOW-DEBUG-END-----------------
+//-------------------------Dump Dict----------------
 
 void Memory::dumpSignatures(const char * fileNameSign, bool words3D) const
 {
@@ -3694,10 +3730,16 @@ unsigned long Memory::getMemoryUsed() const
 	{
 		memoryUsage += iter->second->getMemoryUsed(true);
 	}
+
+	//-----------------------BOW-DEBUG-START-----------------
+	//-----------------------Get-memory-used----------------
 	if(_vwd)
 	{
 		memoryUsage += _vwd->getMemoryUsed();
 	}
+
+	//-----------------------BOW-DEBUG-END-----------------
+	//-----------------------Get-memory-used----------------
 	memoryUsage += _stMem.size() * (sizeof(int)+sizeof(std::set<int>::iterator)) + sizeof(std::set<int>);
 	memoryUsage += _workingMem.size() * (sizeof(int)+sizeof(double)+sizeof(std::map<int, double>::iterator)) + sizeof(std::map<int, double>);
 	memoryUsage += _groundTruths.size() * (sizeof(int)+sizeof(Transform)+12*sizeof(float) + sizeof(std::map<int, Transform>::iterator)) + sizeof(std::map<int, Transform>);
@@ -4510,7 +4552,14 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 	}
 	UASSERT(_feature2D != 0);
 
+	
+	//-----------------------BOW-DEBUG-START-----------------
+	//-----------------------Update-Dict---------------------
+
 	PreUpdateThread preUpdateThread(_vwd);
+
+	//-----------------------BOW-DEBUG-END-----------------
+	//-----------------------Update Dict-------------------
 
 	UTimer timer;
 	timer.start();
@@ -4665,10 +4714,16 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 
 	int treeSize= int(_workingMem.size() + _stMem.size());
 	int meanWordsPerLocation = _feature2D->getMaxFeatures()>0?_feature2D->getMaxFeatures():0;
+
+	//-----------------------BOW-DEBUG-START-----------------
+	//-----------------------meanWordsPerLocation---------------------
 	if(treeSize > 1)
 	{
 		meanWordsPerLocation = _vwd->getTotalActiveReferences() / (treeSize-1); // ignore virtual signature
 	}
+
+	//-----------------------BOW-DEBUG-START-----------------
+	//-----------------------meanWordsPerLocation---------------------
 
 	if(_parallelized && !isIntermediateNode)
 	{
@@ -5364,7 +5419,8 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 		}
 
 		// Quantization to vocabulary
-		//BOW_DEBUG - add new words to bow
+		//-----------------------BOW-DEBUG-START-----------------
+		//-----------------------Add-New-Words-------------------
 		wordIds = _vwd->addNewWords(descriptorsForQuantization, id);
 
 		// Set ID -1 to features not used for quantization
@@ -5392,7 +5448,12 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 
 		t = timer.ticks();
 		if(stats) stats->addStatistic(Statistics::kTimingMemAdd_new_words(), t*1000.0f);
+		
+		
 		UDEBUG("time addNewWords %fs indexed=%d not=%d", t, _vwd->getIndexedWordsCount(), _vwd->getNotIndexedWordsCount());
+		//-----------------------BOW-DEBUG-END-----------------
+		//-----------------------Add-New-Words-------------------
+
 	}
 	else if(id>0)
 	{
@@ -6098,6 +6159,8 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 	return s;
 }
 
+//-----------------------BOW-DEBUG-START-----------------
+//-----------------------Disable-Word-Ref-------------------
 void Memory::disableWordsRef(int signatureId)
 {
 	UDEBUG("id=%d", signatureId);
@@ -6120,6 +6183,11 @@ void Memory::disableWordsRef(int signatureId)
 	}
 }
 
+//-----------------------BOW-DEBUG-END-----------------
+//-----------------------Disable-Word-Ref-------------------
+
+//-----------------------BOW-DEBUG-START-----------------
+//-----------------------Clean-Word-Ref-------------------
 void Memory::cleanUnusedWords()
 {
 	std::vector<VisualWord*> removedWords = _vwd->getUnusedWords();
@@ -6142,6 +6210,11 @@ void Memory::cleanUnusedWords()
 		}
 	}
 }
+//-----------------------BOW-DEBUG-END-----------------
+//-----------------------Clean-Word-Ref----------------
+
+//-----------------------BOW-DEBUG-START-----------------
+//-----------------------Enable-Word-Ref----------------
 
 void Memory::enableWordsRef(const std::list<int> & signatureIds)
 {
@@ -6254,6 +6327,8 @@ void Memory::enableWordsRef(const std::list<int> & signatureIds)
 	count = _vwd->getTotalActiveReferences() - count;
 	UDEBUG("%d words total ref added from %d signatures, time=%fs...", count, surfSigns.size(), timer.ticks());
 }
+//-----------------------BOW-DEBUG-END-----------------
+//-----------------------Enable-Word-Ref----------------
 
 std::set<int> Memory::reactivateSignatures(const std::list<int> & ids, unsigned int maxLoaded, double & timeDbAccess)
 {

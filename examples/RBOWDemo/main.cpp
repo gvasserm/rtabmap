@@ -44,11 +44,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rtabmap/core/VWDictionary.h"
 #include "rtabmap/core/VisualWord.h"
 
+#include "DBoW2/Converter.h"
+
 #ifdef RTABMAP_PYTHON
 #include "rtabmap/core/PythonInterface.h"
 #endif
 
 using namespace rtabmap;
+using namespace cv;
 
 
 bool has_extension(const std::string& file, const std::vector<std::string>& exts) {
@@ -94,7 +97,7 @@ void get_files(std::vector<std::string> &files_in_dir)
 std::map<int, float> computeLikelihood(VWDictionary* vwd, 
 	const std::list<int> &ids, 
 	const std::list<int> &wordIds,
-	std::vector<float> &wordCount,
+	std::map<int, float> &wordCount,
 	float N)
 {
 	
@@ -163,8 +166,7 @@ std::map<int, float> computeLikelihood(VWDictionary* vwd,
 	}
 }
 
-using namespace rtabmap;
-using namespace cv;
+
 int main(int argc, char * argv[])
 {
 	ParametersMap params;
@@ -175,51 +177,103 @@ int main(int argc, char * argv[])
 	get_files(files_in_dir);
 	std::sort(files_in_dir.begin(), files_in_dir.end());
 
-
 	int id = 0;
 	Rtabmap * rtabmap = new Rtabmap();
 	rtabmap->init(params);
 	Memory* memory = rtabmap->getMemoryC();
 	VWDictionary* vwd = memory->getVWDictionaryC();
 
-	std::vector<std::list<int>> wordIds;
-	std::vector<float> wordC;
+	//vwd->setFixedDictionaryDBOW2("/home/gvasserm/dev/ORB_SLAM2/Vocabulary/ORBvoc.txt");
 
-	for (const auto &f : files_in_dir) 
+	std::map<int, std::list<int>> wordIds;
+	std::map<int, float> wordC;
+
+	if (true)
 	{
-		cv::Mat im = cv::imread(f);
-		cv::Ptr<cv::ORB> orb = cv::ORB::create(1000);
-		std::vector<cv::KeyPoint> keypoints;
-		cv::Mat features;
-		orb->detect(im, keypoints);
-		orb->compute(im, keypoints, features);
-		std::list<int> wi = vwd->addNewWords(features, id);
-		vwd->update();
-		wordIds.push_back(wi);
-		wordC.push_back(wi.size());
-		id++;
-		//int s = vwd->getVisualWords().size();
+		for (const auto &f : files_in_dir)
+		{
 
-		if(false){
-			Mat image_with_keypoints;
-			drawKeypoints(im, keypoints, image_with_keypoints);
+			if (id > 0)
+			{
+				cv::Mat im = cv::imread(f);
+				cv::Ptr<cv::ORB> orb = cv::ORB::create(1000);
+				std::vector<cv::KeyPoint> keypoints;
+				cv::Mat features;
+				orb->detect(im, keypoints);
+				orb->compute(im, keypoints, features);
+				std::list<int> wi = vwd->addNewWords(features, id);
+				// std::vector<int> w = vwd->findNN(features);
+				vwd->update();
+				// wordIds[id] = wi;
+				// wordC[id] = wi.size();
+				// int s = vwd->getVisualWords().size();
 
-			// Display the original image and the one with keypoints
-			imshow("Original Image", im);
-			imshow("Image with Keypoints", image_with_keypoints);
-			waitKey(0);
-			//std::cout << features.rows << std::endl;
-			//std::cout << s << std::endl;
-			//s = vwd->getVisualWords().size();
-			//std::cout << s << std::endl;
+				if (false)
+				{
+					cv::Mat image_with_keypoints;
+					drawKeypoints(im, keypoints, image_with_keypoints);
+
+					// Display the original image and the one with keypoints
+					imshow("Original Image", im);
+					imshow("Image with Keypoints", image_with_keypoints);
+					waitKey(0);
+					// std::cout << features.rows << std::endl;
+					// std::cout << s << std::endl;
+					// s = vwd->getVisualWords().size();
+					// std::cout << s << std::endl;
+				}
 			}
+			id++;
+		}
 	}
 
 	//std::cout << wordC[0] << std::endl;
 
-	std::list<int> ids = {1, 2, 3, 4, 5, 30};
-	std::map<int, float> likelihood = computeLikelihood(vwd, ids, wordIds[3], wordC, id);
-	rtabmap->close(false);
+	std::map<int, DBoW2::BowVector> bowVectors;
+	if (true)
+	{
+		vwd->setFixedDictionary();
+		id = 0;
+		for (const auto &f : files_in_dir) 
+		{
+			cv::Mat im = cv::imread(files_in_dir[id]);
+			cv::Ptr<cv::ORB> orb = cv::ORB::create(1000);
+			std::vector<cv::KeyPoint> keypoints;
+			cv::Mat features;
+			orb->detect(im, keypoints);
+			orb->compute(im, keypoints, features);
+			wordIds[id] = vwd->addNewWords(features, id);
+			wordC[id] = wordIds[id].size();
 
+			DBoW2::BowVector mBowVec;
+    		DBoW2::FeatureVector mFeatVec;
+
+			vector<cv::Mat> vCurrentDesc = DBoW2::toDescriptorVector(features);
+			memory->_vocabulary->transform(vCurrentDesc, mBowVec, mFeatVec, 4);
+			bowVectors[id] = mBowVec;
+			
+			// std::vector<int> wi = vwd->findNN(features);
+			// std::list<int> lst(wi.begin(), wi.end());
+			// wordIds[id] = lst;
+			// wordC[id] = wordIds[id].size();
+			// vwd->update();
+			id++;
+		}
+	}
+
+	int N = wordC.size();
+
+	std::list<int> ids = {1, 3, 5, 29};
+	std::map<int, float> likelihood = computeLikelihood(vwd, ids, wordIds[0], wordC, N);
+	
+	std::map<int, double> scores;
+	for(std::list<int>::const_iterator i=ids.begin(); i!=ids.end(); ++i)
+	{
+		DBoW2::BowVector BowVec1 = bowVectors[0];
+		DBoW2::BowVector BowVec2 = bowVectors[*i];
+		scores[*i] = memory->_vocabulary->score(BowVec1, BowVec2);
+	}
+	
+	rtabmap->close(false);
 	return 0;
 }

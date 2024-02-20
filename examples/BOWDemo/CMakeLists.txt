@@ -15,7 +15,6 @@ if(NOT internal)
 endif()
 
 ADD_EXECUTABLE(bow_demo main.cpp)
-TARGET_LINK_LIBRARIES(bow_demo rtabmap::rtabmap "/home/gvasserm/dev/rtabmap/DBoW2/lib/libDBoW2.so")
 
 if(internal)
   SET_TARGET_PROPERTIES( bow_mapping 

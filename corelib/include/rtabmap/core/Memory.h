@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <opencv2/features2d/features2d.hpp>
 #include <pcl/pcl_config.h>
 
-#include "ORBVocabulary.h"
+#include "DBoW2/ORBVocabulary.h"
 
 namespace rtabmap {
 
@@ -68,6 +68,7 @@ public:
 	static const int kIdStart;
 	static const int kIdVirtual;
 	static const int kIdInvalid;
+	DBoW2::ORBVocabulary *_vocabulary = nullptr;
 
 public:
 	Memory(const ParametersMap & parameters = ParametersMap());
@@ -296,8 +297,6 @@ protected:
 	DBDriver * _dbDriver;
 
 private:
-
-	DBoW2::ORBVocabulary *_vocabulary = nullptr;
 	
 	// parameters
 	ParametersMap parameters_;

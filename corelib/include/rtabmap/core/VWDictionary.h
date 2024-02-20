@@ -36,6 +36,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include "rtabmap/core/Parameters.h"
 
+#include <DBoW2/BowVector.h>
+#include <DBoW2/FeatureVector.h>
+#include <DBoW2/ORBVocabulary.h>
+
 namespace rtabmap
 {
 
@@ -107,6 +111,8 @@ public:
 	bool isIncrementalFlann() const {return _incrementalFlann;}
 	void setIncrementalDictionary();
 	void setFixedDictionary(const std::string & dictionaryPath);
+	void setFixedDictionary() { _incrementalDictionary=false;};
+	void setFixedDictionaryDBOW2(const std::string & dictionaryPath);
 
 	void exportDictionary(const char * fileNameReferences, const char * fileNameDescriptors) const;
 
@@ -120,7 +126,7 @@ public:
 public:
 	static cv::Mat convertBinTo32F(const cv::Mat & descriptorsIn, bool byteToFloat = true);
 	static cv::Mat convert32FToBin(const cv::Mat & descriptorsIn, bool byteToFloat = true);
-
+	
 protected:
 	int getNextId();
 
@@ -129,6 +135,7 @@ protected:
 	int _totalActiveReferences; // keep track of all references for updating the common signature
 
 private:
+
 	bool _incrementalDictionary;
 	bool _incrementalFlann;
 	float _rebalancingFactor;

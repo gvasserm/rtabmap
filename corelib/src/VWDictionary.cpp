@@ -76,6 +76,7 @@ VWDictionary::VWDictionary(const ParametersMap & parameters) :
 {
 	this->setNNStrategy((NNStrategy)Parameters::defaultKpNNStrategy());
 	this->parseParameters(parameters);
+	return;
 }
 
 VWDictionary::~VWDictionary()
@@ -287,6 +288,154 @@ void VWDictionary::setFixedDictionary(const std::string & dictionaryPath)
 	}
 	_dictionaryPath = dictionaryPath;
 	_newDictionaryPath = dictionaryPath;
+}
+
+/*
+template <class TDescriptor, class F>
+  bool TemplatedVocabulary<TDescriptor, F>::loadFromTextFile(const std::string &filename)
+  {
+    ifstream f;
+    f.open(filename.c_str());
+
+    if (f.eof())
+      return false;
+
+    m_words.clear();
+    m_nodes.clear();
+
+    string s;
+    getline(f, s);
+    stringstream ss;
+    ss << s;
+    ss >> m_k;
+    ss >> m_L;
+    int n1, n2;
+    ss >> n1;
+    ss >> n2;
+
+    if (m_k < 0 || m_k > 20 || m_L < 1 || m_L > 10 || n1 < 0 || n1 > 5 || n2 < 0 || n2 > 3)
+    {
+      std::cerr << "Vocabulary loading failure: This is not a correct text file!" << endl;
+      return false;
+    }
+
+    m_scoring = (ScoringType)n1;
+    m_weighting = (WeightingType)n2;
+    createScoringObject();
+
+    // nodes
+    int expected_nodes =
+        (int)((pow((double)m_k, (double)m_L + 1) - 1) / (m_k - 1));
+    m_nodes.reserve(expected_nodes);
+
+    m_words.reserve(pow((double)m_k, (double)m_L + 1));
+
+    m_nodes.resize(1);
+    m_nodes[0].id = 0;
+    while (!f.eof())
+    {
+      string snode;
+      getline(f, snode);
+      stringstream ssnode;
+      ssnode << snode;
+
+      int nid = m_nodes.size();
+      m_nodes.resize(m_nodes.size() + 1);
+      m_nodes[nid].id = nid;
+
+      int pid;
+      ssnode >> pid;
+      m_nodes[nid].parent = pid;
+      m_nodes[pid].children.push_back(nid);
+
+      int nIsLeaf;
+      ssnode >> nIsLeaf;
+
+      stringstream ssd;
+      for (int iD = 0; iD < F::L; iD++)
+      {
+        string sElement;
+        ssnode >> sElement;
+        ssd << sElement << " ";
+      }
+      F::fromString(m_nodes[nid].descriptor, ssd.str());
+
+      ssnode >> m_nodes[nid].weight;
+
+      if (nIsLeaf > 0)
+      {
+        int wid = m_words.size();
+        m_words.resize(wid + 1);
+
+        m_nodes[nid].word_id = wid;
+        m_words[wid] = &m_nodes[nid];
+      }
+      else
+      {
+        m_nodes[nid].children.reserve(m_k);
+      }
+    }
+
+    return true;
+  }
+  */
+
+void VWDictionary::setFixedDictionaryDBOW2(const std::string & dictionaryPath)
+{
+	
+	UWARN("Loading fixed vocabulary \"%s\", this may take a while...", dictionaryPath.c_str());
+	std::ifstream file;
+	std::string str;
+	std::list<std::string> strList;
+	file.open(dictionaryPath.c_str(), std::ifstream::in);
+	int dimension = 32;
+	int nW = 0;
+	while(file.good())
+	{
+		std::getline(file, str);
+		if (str.empty()) {
+        	std::cout << "The input string is empty." << std::endl;
+        	break; // Exit with an error code or handle as needed
+    	}
+		strList = uSplit(str);
+		
+		if(strList.size() < 35){
+			continue;
+		}
+		
+		//first one is the visual word id
+		std::list<std::string>::iterator iter = strList.begin();
+		int id = std::atoi(iter->c_str());
+		cv::Mat descriptor(1, dimension, CV_32F);
+		
+		++iter;
+		int isLeaf = uStr2Int(*iter);
+		int i=0;
+		if (isLeaf == 0){
+			continue;
+		}
+		++iter;
+		//get descriptor
+		for(;i<dimension && iter != strList.end(); ++i, ++iter)
+		{
+			descriptor.at<float>(i) = uStr2Float(*iter);
+		}
+		nW++;
+
+		//std::cout << descriptor << std::endl;
+
+		VisualWord * vw = new VisualWord(id, descriptor, 0);
+		vw->setSaved(true);
+		_visualWords.insert(_visualWords.end(), std::pair<int, VisualWord*>(id, vw));
+		//_notIndexedWords.insert(_notIndexedWords.end(), id);
+		//_unusedWords.insert(_unusedWords.end(), std::pair<int, VisualWord*>(id, vw));
+		
+	}
+
+	_dictionaryPath = dictionaryPath;
+	_newDictionaryPath = dictionaryPath;
+	_incrementalDictionary = false;
+	this->update();
 }
 
 bool VWDictionary::setNNStrategy(NNStrategy strategy)

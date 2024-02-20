@@ -11,10 +11,9 @@
 
 // DBoW2
 // #include "DBoW2/DBoW2/DBoW2.h" // defines OrbVocabulary and OrbDatabase
-#include "../../DBoW2/DBoW2/BowVector.h"
-#include "../../DBoW2/DBoW2/FeatureVector.h"
-#include "../../DBoW2/DBoW2/ORBVocabulary.h"
-#include "../../DBoW2/DBoW2/Converter.h"
+#include "DBoW2/BowVector.h"
+#include "DBoW2/FeatureVector.h"
+#include "DBoW2/ORBVocabulary.h"
 
 // OpenCV
 #include <opencv2/core.hpp>
@@ -63,8 +62,8 @@ void testVoc()
   orb->detect(im2, keypoints2);
   orb->compute(im2, keypoints2, features2);
 
-  vector<cv::Mat> vCurrentDesc1 = Converter::toDescriptorVector(features1);
-  vector<cv::Mat> vCurrentDesc2 = Converter::toDescriptorVector(features2);
+  vector<cv::Mat> vCurrentDesc1 = toDescriptorVector(features1);
+  vector<cv::Mat> vCurrentDesc2 = toDescriptorVector(features2);
 
   std::string strVocFile = "/home/gvasserm/dev/rtabmap/ORBvoc.txt";
   ORBVocabulary *mpVocabulary = new ORBVocabulary();

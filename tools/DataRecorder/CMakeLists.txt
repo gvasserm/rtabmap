@@ -1,9 +1,9 @@
-
 IF(MINGW)
   ADD_EXECUTABLE(dataRecorder WIN32 main.cpp)
 ELSE()
   ADD_EXECUTABLE(dataRecorder main.cpp)
 ENDIF()
+
 TARGET_LINK_LIBRARIES(dataRecorder rtabmap_gui)
 
 SET_TARGET_PROPERTIES( dataRecorder 

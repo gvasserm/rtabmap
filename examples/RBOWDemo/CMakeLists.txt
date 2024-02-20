@@ -15,6 +15,12 @@ if(NOT internal)
 	FIND_PACKAGE(RTABMap REQUIRED COMPONENTS gui)
 endif()
 
+set(${DBoW2_INCLUDE_DIRS} "/usr/local/include/DBoW2")
+set(${DBoW2_LIBRARY_DIRS} "/usr/local/lib/libDBoW2.so")
+
+include_directories(${DBoW2_INCLUDE_DIRS})
+link_directories(${DBoW2_LIBRARY_DIRS})
+
 ADD_EXECUTABLE(rbow_demo main.cpp)
   
 TARGET_LINK_LIBRARIES(rbow_demo rtabmap::gui)

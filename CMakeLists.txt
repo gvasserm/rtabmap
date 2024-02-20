@@ -17,9 +17,7 @@ SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules")
 
 #("${PROJECT_SOURCE_DIR}/DBoW2/")
 
-include_directories("/home/gvasserm/dev/rtabmap/DBoW2/DBoW2"
-            "/home/gvasserm/dev/rtabmap/DBoW2/DUtils"
-)
+include_directories("/home/gvasserm/dev/DBoW2/" "/home/gvasserm/dev/DUtils")
 
 #######################
 # VERSION
@@ -169,7 +167,7 @@ IF(APPLE OR WIN32)
     OPTION(BUILD_AS_BUNDLE "Set to ON to build as bundle with all embedded dependencies (DragNDrop for Mac, installer for Windows)" OFF)
 ENDIF(APPLE OR WIN32)
 OPTION(BUILD_APP "Build main application" ON)
-OPTION(BUILD_TOOLS "Build tools" ON)
+OPTION(BUILD_TOOLS "Build tools" OFF)
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 
 ####### DEPENDENCIES #######
@@ -1108,6 +1106,7 @@ ENDIF()
 ####
 # Global Export Target
 ####
+
 add_library(rtabmap INTERFACE)
 add_library(rtabmap::rtabmap ALIAS rtabmap)
 IF(QT4_FOUND OR Qt5_FOUND OR Qt6_FOUND)
@@ -1119,12 +1118,12 @@ IF(QT4_FOUND OR Qt5_FOUND OR Qt6_FOUND)
    ELSE()
       set(CONF_QT_VERSION 6)
    ENDIF()
-   #target_link_libraries(rtabmap INTERFACE "/home/gvasserm/dev/rtabmap/DBoW2/lib/libDBoW2.so" rtabmap_utilite rtabmap_core rtabmap_gui)
    target_link_libraries(rtabmap INTERFACE rtabmap_utilite rtabmap_core rtabmap_gui)
 ELSE()
    set(CONF_WITH_GUI OFF)
    target_link_libraries(rtabmap INTERFACE rtabmap_utilite rtabmap_core)
 ENDIF()
+
 install(TARGETS rtabmap EXPORT rtabmapTargets)
 export(EXPORT rtabmapTargets
   FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
