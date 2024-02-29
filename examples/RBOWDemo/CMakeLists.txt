@@ -15,11 +15,11 @@ if(NOT internal)
 	FIND_PACKAGE(RTABMap REQUIRED COMPONENTS gui)
 endif()
 
-set(${DBoW2_INCLUDE_DIRS} "/usr/local/include/DBoW2")
-set(${DBoW2_LIBRARY_DIRS} "/usr/local/lib/libDBoW2.so")
+set(${DBoW3_INCLUDE_DIRS} "/home/gvasserm/dev/loop-closure-toolbox/src/DBoW3/include")
+set(${DBoW3_LIBRARY_DIRS} "/home/gvasserm/dev/loop-closure-toolbox/build/src/DBoW3/libDBoW3.so")
 
-include_directories(${DBoW2_INCLUDE_DIRS})
-link_directories(${DBoW2_LIBRARY_DIRS})
+include_directories(${DBoW3_INCLUDE_DIRS})
+link_directories(${DBoW3_LIBRARY_DIRS})
 
 ADD_EXECUTABLE(rbow_demo main.cpp)
   

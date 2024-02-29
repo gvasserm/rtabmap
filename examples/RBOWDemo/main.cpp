@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rtabmap/core/VWDictionary.h"
 #include "rtabmap/core/VisualWord.h"
 
-#include "DBoW2/Converter.h"
+#include "DBoW3.h"
 
 #ifdef RTABMAP_PYTHON
 #include "rtabmap/core/PythonInterface.h"
@@ -52,6 +52,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace rtabmap;
 using namespace cv;
+
+
+std::vector<cv::Mat> toDescriptorVector(const cv::Mat &Descriptors)
+{
+    std::vector<cv::Mat> vDesc;
+    vDesc.reserve(Descriptors.rows);
+    for (int j=0;j<Descriptors.rows;j++)
+        vDesc.push_back(Descriptors.row(j));
+
+    return vDesc;
+}
 
 
 bool has_extension(const std::string& file, const std::vector<std::string>& exts) {
@@ -229,7 +240,7 @@ int main(int argc, char * argv[])
 
 	//std::cout << wordC[0] << std::endl;
 
-	std::map<int, DBoW2::BowVector> bowVectors;
+	std::map<int, DBoW3::BowVector> bowVectors;
 	if (true)
 	{
 		vwd->setFixedDictionary();
@@ -245,10 +256,10 @@ int main(int argc, char * argv[])
 			wordIds[id] = vwd->addNewWords(features, id);
 			wordC[id] = wordIds[id].size();
 
-			DBoW2::BowVector mBowVec;
-    		DBoW2::FeatureVector mFeatVec;
+			DBoW3::BowVector mBowVec;
+    		DBoW3::FeatureVector mFeatVec;
 
-			vector<cv::Mat> vCurrentDesc = DBoW2::toDescriptorVector(features);
+			std::vector<cv::Mat> vCurrentDesc = toDescriptorVector(features);
 			memory->_vocabulary->transform(vCurrentDesc, mBowVec, mFeatVec, 4);
 			bowVectors[id] = mBowVec;
 			
@@ -269,8 +280,8 @@ int main(int argc, char * argv[])
 	std::map<int, double> scores;
 	for(std::list<int>::const_iterator i=ids.begin(); i!=ids.end(); ++i)
 	{
-		DBoW2::BowVector BowVec1 = bowVectors[0];
-		DBoW2::BowVector BowVec2 = bowVectors[*i];
+		DBoW3::BowVector BowVec1 = bowVectors[0];
+		DBoW3::BowVector BowVec2 = bowVectors[*i];
 		scores[*i] = memory->_vocabulary->score(BowVec1, BowVec2);
 	}
 	

@@ -42,8 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/core/SensorData.h>
 #include <rtabmap/core/Link.h>
 
-#include "DBoW2/BowVector.h"
-#include "DBoW2/FeatureVector.h"
+#include "DBoW3.h"
 
 namespace rtabmap
 {
@@ -110,7 +109,7 @@ public:
 	void changeWordsRef(int oldWordId, int activeWordId);
 	void setWords(const std::multimap<int, int> & words, const std::vector<cv::KeyPoint> & keypoints, const std::vector<cv::Point3f> & words3, const cv::Mat & descriptors);
 	
-	void setDBoWWords(const DBoW2::BowVector &bowvector);
+	void setDBoWWords(const DBoW3::BowVector &bowvector);
 	
 	bool isEnabled() const {return _enabled;}
 	void setEnabled(bool enabled) {_enabled = enabled;}
@@ -147,8 +146,8 @@ public:
 
 	//-----------------------BOW-DEBUG-START-----------------
 	//-----------------------Signature-START-----------------
-	DBoW2::BowVector _bowvector;
-	DBoW2::FeatureVector _featVec;
+	DBoW3::BowVector _bowvector;
+	DBoW3::FeatureVector _featVec;
 	std::multimap<int, int> _wordsDBoW; // word <id, keypoint index>
 	//-------------------------BOW-DEBUG-END-----
 	//-----------------------Signature-END-----------------

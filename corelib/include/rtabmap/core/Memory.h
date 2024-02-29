@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <opencv2/features2d/features2d.hpp>
 #include <pcl/pcl_config.h>
 
-#include "DBoW2/ORBVocabulary.h"
+#include "DBoW3.h"
 
 namespace rtabmap {
 
@@ -68,13 +68,13 @@ public:
 	static const int kIdStart;
 	static const int kIdVirtual;
 	static const int kIdInvalid;
-	DBoW2::ORBVocabulary *_vocabulary = nullptr;
+	DBoW3::Vocabulary *_vocabulary = nullptr;
 
 public:
 	Memory(const ParametersMap & parameters = ParametersMap());
 	virtual ~Memory();
 
-	std::list<int> getWordsDBoW(const cv::Mat & descriptorsIn, DBoW2::BowVector &bowVector);
+	std::list<int> getWordsDBoW(const cv::Mat & descriptorsIn, DBoW3::BowVector &bowVector);
 
 	virtual void parseParameters(const ParametersMap & parameters);
 	virtual const ParametersMap & getParameters() const {return parameters_;}
@@ -92,6 +92,8 @@ public:
 	void close(bool databaseSaved = true, bool postInitClosingEvents = false, const std::string & ouputDatabasePath = "");
 	std::map<int, float> computeLikelihood(const Signature * signature,
 			const std::list<int> & ids);
+
+	std::map<int, float> computeLikelihoodNew(const Signature * signature, const std::list<int> & ids);
 	int incrementMapId(std::map<int, int> * reducedIds = 0);
 	void updateAge(int signatureId);
 

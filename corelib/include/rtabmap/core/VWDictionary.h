@@ -36,9 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include "rtabmap/core/Parameters.h"
 
-#include <DBoW2/BowVector.h>
-#include <DBoW2/FeatureVector.h>
-#include <DBoW2/ORBVocabulary.h>
+#include "DBoW3.h"
 
 namespace rtabmap
 {
@@ -112,7 +110,7 @@ public:
 	void setIncrementalDictionary();
 	void setFixedDictionary(const std::string & dictionaryPath);
 	void setFixedDictionary() { _incrementalDictionary=false;};
-	void setFixedDictionaryDBOW2(const std::string & dictionaryPath);
+	void setFixedDictionaryDBOW3(const std::string & dictionaryPath);
 
 	void exportDictionary(const char * fileNameReferences, const char * fileNameDescriptors) const;
 

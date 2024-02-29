@@ -64,7 +64,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <opencv2/imgproc/types_c.h>
 #include <rtabmap/core/LocalGridMaker.h>
 
-#include "DBoW2/Converter.h"
+#include "DBoW3.h"
 
 namespace rtabmap {
 
@@ -133,16 +133,9 @@ Memory::Memory(const ParametersMap & parameters) :
 {
 
 	//=======Added init vocabulary (Genadiy)=====
-	_vocabulary = new DBoW2::ORBVocabulary();
-	std::string strVocFile = "/home/gvasserm/dev/ORB_SLAM2/Vocabulary/ORBvoc.txt";
-  	bool bVocLoad = _vocabulary->loadFromTextFile(strVocFile);
-	if(!bVocLoad)
-    {
-        cerr << "Wrong path to vocabulary. " << endl;
-        cerr << "Falied to open at: " << strVocFile << endl;
-        exit(-1);
-    }
-    cout << "Vocabulary loaded!" << endl << endl;
+	_vocabulary = new DBoW3::Vocabulary();
+	std::string strVocFile = "/home/gvasserm/dev/loop-closure-toolbox/config/orbvoc.dbow3";
+  	_vocabulary->load(strVocFile);
 	//============
 	
 	_feature2D = Feature2D::create(parameters);
@@ -175,22 +168,28 @@ Memory::Memory(const ParametersMap & parameters) :
 	this->parseParameters(parameters);
 }
 
-std::list<int> Memory::getWordsDBoW(const cv::Mat &descriptorsIn, DBoW2::BowVector &bowVector)
+std::vector<cv::Mat> toDescriptorVector(const cv::Mat &Descriptors)
 {
+    std::vector<cv::Mat> vDesc;
+    vDesc.reserve(Descriptors.rows);
+    for (int j=0;j<Descriptors.rows;j++)
+        vDesc.push_back(Descriptors.row(j));
 
-	std::vector<cv::Mat> descVector = DBoW2::toDescriptorVector(descriptorsIn);
-	DBoW2::FeatureVector featVec;
-	_vocabulary->transform(descVector, bowVector, featVec, 4);
+    return vDesc;
+}
+
+std::list<int> Memory::getWordsDBoW(const cv::Mat &descriptorsIn, DBoW3::BowVector &bowVector)
+{
+	DBoW3::FeatureVector featVec;
+	_vocabulary->transform(descriptorsIn, bowVector);
 
     std::list<int> words;
-    for(size_t i=0; i<descVector.size();++i)
+    for(int i=0; i<descriptorsIn.rows;++i)
     {
-        int w = _vocabulary->transform(descVector[i]);
+        int w = _vocabulary->transform(descriptorsIn.row(i));
         words.push_back(w);
     }
-
 	return words;
-
 }
 
 bool Memory::init(const std::string & dbUrl, bool dbOverwritten, const ParametersMap & parameters, bool postInitClosingEvents)
@@ -2023,6 +2022,125 @@ std::map<int, float> Memory::computeLikelihood(const Signature * signature, cons
 		return likelihood;
 	}
 }
+//--------------------------BOW-DEBUG-END-----------------
+//----------------------Likelihood-END------------------
+
+std::map<int, float> Memory::computeLikelihoodNew(const Signature * signature, const std::list<int> & ids)
+{
+	
+	UTimer timer;
+	timer.start();
+	std::map<int, float> likelihood;
+
+	if(!signature)
+	{
+		ULOGGER_ERROR("The signature is null");
+		return likelihood;
+	}
+	else if(ids.empty())
+	{
+		UWARN("ids list is empty");
+		return likelihood;
+	}
+
+	for(std::list<int>::const_iterator iter = ids.begin(); iter!=ids.end(); ++iter)
+	{
+		likelihood.insert(likelihood.end(), std::pair<int, float>(*iter, 0.0f));
+	}
+
+	size_t N = this->getSignatures().size();
+
+	DBoW3::Database db(*_vocabulary, false, 0);
+
+	if(N)
+	{
+		UDEBUG("processing... ");
+		// Pour chaque mot dans la signature SURF
+
+		std::vector<int> inds;
+		for(std::list<int>::const_iterator iter = ids.begin(); iter!=ids.end(); ++iter)
+		{
+			const Signature * s = this->getSignature(*iter);
+			if(!s){
+				continue;
+			}
+
+			const cv::Mat &d = s->getWordsDescriptors();
+
+			// if(s->_bowvector.size() > 0){
+			// 	db.add(s->_bowvector);
+			// 	inds.push_back(*iter);
+			// }
+
+			if(d.rows > 0 && d.cols > 0){
+				db.add(d);
+				inds.push_back(*iter);
+			}
+		}
+
+		DBoW3::QueryResults results;
+		const cv::Mat &d = signature->getWordsDescriptors();
+		db.query(d, results, -1);
+    	//db.query(signature->_bowvector, results, -1);
+		for(auto result: results)
+		{
+			int ind = inds[result.Id];
+			likelihood[ind] = result.Score;
+		}
+		//std::cout << "Query results: " << results << std::endl;
+	}
+
+	UDEBUG("compute likelihood (tf-idf) %f s", timer.ticks());
+	return likelihood;
+}
+/*
+std::map<int, float> Memory::computeLikelihoodNew(const Signature * signature, const std::list<int> & ids)
+{
+	
+	UTimer timer;
+	timer.start();
+	std::map<int, float> likelihood;
+
+	if(!signature)
+	{
+		ULOGGER_ERROR("The signature is null");
+		return likelihood;
+	}
+	else if(ids.empty())
+	{
+		UWARN("ids list is empty");
+		return likelihood;
+	}
+
+	for(std::list<int>::const_iterator iter = ids.begin(); iter!=ids.end(); ++iter)
+	{
+		likelihood.insert(likelihood.end(), std::pair<int, float>(*iter, 0.0f));
+	}
+
+	size_t N = this->getSignatures().size();
+
+	if(N)
+	{
+		UDEBUG("processing... ");
+		// Pour chaque mot dans la signature SURF
+		for(std::list<int>::const_iterator iter = ids.begin(); iter!=ids.end(); ++iter)
+		{
+			const Signature * s = this->getSignature(*iter);
+			if(!s){
+				continue;
+			}
+
+			if(s->_bowvector.size() > 0){
+				float score = _vocabulary->score(signature->_bowvector, s->_bowvector);
+				likelihood[*iter] = score;
+			}
+		}
+	}
+
+	UDEBUG("compute likelihood (tf-idf) %f s", timer.ticks());
+	return likelihood;
+}
+*/
 //--------------------------BOW-DEBUG-END-----------------
 //----------------------Likelihood-END------------------
 
@@ -5384,7 +5502,7 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 	}
 
 	std::list<int> wordIds;
-	DBoW2::BowVector bowVector;
+	DBoW3::BowVector bowVector;
 	std::list<int> wordIds_DBoW;
 	
 	if(descriptors.rows)

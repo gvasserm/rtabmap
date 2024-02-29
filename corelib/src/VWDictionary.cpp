@@ -380,7 +380,7 @@ template <class TDescriptor, class F>
   }
   */
 
-void VWDictionary::setFixedDictionaryDBOW2(const std::string & dictionaryPath)
+void VWDictionary::setFixedDictionaryDBOW3(const std::string & dictionaryPath)
 {
 	
 	UWARN("Loading fixed vocabulary \"%s\", this may take a while...", dictionaryPath.c_str());

@@ -1160,6 +1160,27 @@ bool Rtabmap::process(
 	covariance.at<double>(5,5) = odomAngularVariance;
 	return process(data, odomPose, covariance, odomVelocity, externalStats);
 }
+
+int cerealize_likelihood(std::string fname, const std::map<int, float> &rawLikelihood)
+{
+	std::ofstream file(fname);
+
+    // Check if file is open
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing." << std::endl;
+        return 1;
+    }
+
+    // Iterate through the map and write each key-value pair to the file
+    for (const auto& pair : rawLikelihood) {
+        file << pair.first << "," << pair.second << "\n";
+    }
+    // Close the file
+    file.close();
+    return 0;
+}
+
+
 bool Rtabmap::process(
 		const SensorData & data,
 		Transform odomPose,
@@ -1170,8 +1191,7 @@ bool Rtabmap::process(
 	UDEBUG("");
 
 	//============================================================
-	// Initialization
-	//============================================================
+
 	UTimer timer;
 	UTimer timerTotal;
 	double timeMemoryUpdate = 0;
@@ -1990,8 +2010,12 @@ bool Rtabmap::process(
 					signaturesToCompare.push_back(iter->first);
 				}
 			}
-
-			rawLikelihood = _memory->computeLikelihood(signature, signaturesToCompare);
+			
+			std::map<int, float> rawLikelihood1;
+			rawLikelihood1 = _memory->computeLikelihood(signature, signaturesToCompare);
+			cerealize_likelihood("results/orig_" + std::to_string(signature->id()) + ".csv", rawLikelihood); 
+			rawLikelihood = _memory->computeLikelihoodNew(signature, signaturesToCompare);
+			cerealize_likelihood("results/new_" + std::to_string(signature->id()) + ".csv", rawLikelihood1);
 
 			// Adjust the likelihood (with mean and std dev)
 			likelihood = rawLikelihood;

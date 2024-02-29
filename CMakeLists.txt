@@ -15,9 +15,7 @@ INCLUDE(GNUInstallDirs)
 ####### local cmake modules #######
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules")
 
-#("${PROJECT_SOURCE_DIR}/DBoW2/")
-
-include_directories("/home/gvasserm/dev/DBoW2/" "/home/gvasserm/dev/DUtils")
+include_directories("/home/gvasserm/dev/loop-closure-toolbox/src/DBoW3/include/")
 
 #######################
 # VERSION

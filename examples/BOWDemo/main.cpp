@@ -11,16 +11,14 @@
 
 // DBoW2
 // #include "DBoW2/DBoW2/DBoW2.h" // defines OrbVocabulary and OrbDatabase
-#include "DBoW2/BowVector.h"
-#include "DBoW2/FeatureVector.h"
-#include "DBoW2/ORBVocabulary.h"
+#include "DBoW3.h"
 
 // OpenCV
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 
-using namespace DBoW2;
+using namespace DBoW3;
 using namespace std;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -80,9 +78,9 @@ void testVoc()
   //std::map<WordId, WordValue>
   //WordID - ID od the word
   //WordValue - Value TF-IDF
-  DBoW2::BowVector mBowVec1, mBowVec2;
+  DBoW3::BowVector mBowVec1, mBowVec2;
   //std::map<NodeId, std::vector<unsigned int> >
-  DBoW2::FeatureVector mFeatVec1, mFeatVec2;
+  DBoW3::FeatureVector mFeatVec1, mFeatVec2;
 
   mpVocabulary->transform(vCurrentDesc1, mBowVec1, mFeatVec1, 4);
   mpVocabulary->transform(vCurrentDesc2, mBowVec2, mFeatVec2, 4);
