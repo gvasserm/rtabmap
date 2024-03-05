@@ -819,6 +819,7 @@ target_include_directories(rtabmap_core PUBLIC
 TARGET_LINK_LIBRARIES(rtabmap_core 
   PUBLIC 
   	"/home/gvasserm/dev/loop-closure-toolbox/build/src/DBoW3/libDBoW3.so"
+	nlohmann_json::nlohmann_json
     rtabmap_utilite 
     ${PUBLIC_LIBRARIES}
   PRIVATE 

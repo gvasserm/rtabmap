@@ -17,6 +17,8 @@ SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules")
 
 include_directories("/home/gvasserm/dev/loop-closure-toolbox/src/DBoW3/include/")
 
+find_package(nlohmann_json)
+
 #######################
 # VERSION
 #######################

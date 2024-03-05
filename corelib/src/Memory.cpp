@@ -66,6 +66,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "DBoW3.h"
 
+#include <nlohmann/json.hpp>
+
 namespace rtabmap {
 
 const int Memory::kIdStart = 0;
@@ -135,7 +137,9 @@ Memory::Memory(const ParametersMap & parameters) :
 	//=======Added init vocabulary (Genadiy)=====
 	_vocabulary = new DBoW3::Vocabulary();
 	std::string strVocFile = "/home/gvasserm/dev/loop-closure-toolbox/config/orbvoc.dbow3";
+	//std::string strVocFile = "/home/gvasserm/dev/loop-closure-toolbox/config/test_rgb_10_5.yaml";
   	_vocabulary->load(strVocFile);
+	//_vocabulary->setScoringType(DBoW3::ScoringType::DOT_PRODUCT);
 	//============
 	
 	_feature2D = Feature2D::create(parameters);
@@ -1897,6 +1901,31 @@ void Memory::clear()
 	UDEBUG("");
 }
 
+
+int jsonDumpMap(std::string filePath, const std::map<int, DBoW3::BowVector> &data)
+{
+	// Convert the map to a JSON object
+    nlohmann::json j = data;
+
+    // Open a file stream for writing
+    std::ofstream outputFile(filePath);
+
+    // Check if the file is open
+    if (!outputFile.is_open()) {
+        std::cerr << "Failed to open file for writing." << std::endl;
+        return -1;
+    }
+
+    // Write the serialized JSON to the file
+    outputFile << j.dump(4); // Using an indentation of 4 spaces for pretty-printing
+
+    // Close the file
+    outputFile.close();
+
+    //std::cout << "Serialized data has been written to " << filePath << std::endl;
+	return 0;
+}
+
 /**
  * Compute the likelihood of the signature with some others in the memory.
  * Important: Assuming that all other ids are under 'signature' id.
@@ -1908,6 +1937,9 @@ void Memory::clear()
 //The likelihood is computed for BoW
 std::map<int, float> Memory::computeLikelihood(const Signature * signature, const std::list<int> & ids)
 {
+
+	std::map<int, DBoW3::BowVector> maps;
+
 	if(!_tfIdfLikelihoodUsed)
 	{
 		UTimer timer;
@@ -2009,6 +2041,9 @@ std::map<int, float> Memory::computeLikelihood(const Signature * signature, cons
 									{
 										//UDEBUG("%d, %f %f %f %f", vw->id(), logNnw, nwi, ni, ( nwi  * logNnw ) / ni);
 										iter->second += ( nwi  * logNnw ) / ni;
+										maps[j->first][vw->id()] = ( nwi  * logNnw ) / ni;
+
+										//std::cout << j->first << std::endl;
 									}
 								}
 							}
@@ -2019,11 +2054,59 @@ std::map<int, float> Memory::computeLikelihood(const Signature * signature, cons
 		}
 
 		UDEBUG("compute likelihood (tf-idf) %f s", timer.ticks());
+		std::string filePath = "results/orig_maps_" + std::to_string(signature->id()) + ".json";
+		jsonDumpMap(filePath, maps);
+    	
 		return likelihood;
 	}
 }
-//--------------------------BOW-DEBUG-END-----------------
-//----------------------Likelihood-END------------------
+
+float score_bow(const DBoW3::BowVector &q, const DBoW3::BowVector &k)
+{
+	DBoW3::BowVector::const_iterator q_it, k_it;
+	const DBoW3::BowVector::const_iterator q_end = q.end();
+	const DBoW3::BowVector::const_iterator k_end = k.end();
+
+	q_it = q.begin();
+	k_it = k.begin();
+
+	double score = 0;
+
+	while(q_it != q_end && k_it != k_end)
+	{
+		const DBoW3::WordValue& qi = q_it->second;
+		const DBoW3::WordValue& ki = k_it->second;
+		
+		if(q_it->first == k_it->first)
+		{
+			score += ki;
+			//score += fabs(vi - wi) - fabs(vi) - fabs(wi);
+			// move v1 and v2 forward
+			++q_it;
+			++k_it;
+		}
+		else if(q_it->first < k_it->first)
+		{
+			// move v1 forward
+			q_it = q.lower_bound(k_it->first);
+			// v1_it = (first element >= v2_it.id)
+		}
+		else
+		{
+			// move v2 forward
+			k_it = k.lower_bound(q_it->first);
+			// v2_it = (first element >= v1_it.id)
+		}
+	}
+
+	// ||v - w||_{L1} = 2 + Sum(|v_i - w_i| - |v_i| - |w_i|) 
+	//		for all i | v_i != 0 and w_i != 0 
+	// (Nister, 2006)
+	// scaled_||v - w||_{L1} = 1 - 0.5 * ||v - w||_{L1}
+	//score = -score/2.0;
+
+	return score; // [0..1]
+}
 
 std::map<int, float> Memory::computeLikelihoodNew(const Signature * signature, const std::list<int> & ids)
 {
@@ -2031,6 +2114,8 @@ std::map<int, float> Memory::computeLikelihoodNew(const Signature * signature, c
 	UTimer timer;
 	timer.start();
 	std::map<int, float> likelihood;
+
+	std::map<int, DBoW3::BowVector> maps;
 
 	if(!signature)
 	{
@@ -2050,74 +2135,8 @@ std::map<int, float> Memory::computeLikelihoodNew(const Signature * signature, c
 
 	size_t N = this->getSignatures().size();
 
-	DBoW3::Database db(*_vocabulary, false, 0);
-
-	if(N)
-	{
-		UDEBUG("processing... ");
-		// Pour chaque mot dans la signature SURF
-
-		std::vector<int> inds;
-		for(std::list<int>::const_iterator iter = ids.begin(); iter!=ids.end(); ++iter)
-		{
-			const Signature * s = this->getSignature(*iter);
-			if(!s){
-				continue;
-			}
-
-			const cv::Mat &d = s->getWordsDescriptors();
-
-			// if(s->_bowvector.size() > 0){
-			// 	db.add(s->_bowvector);
-			// 	inds.push_back(*iter);
-			// }
-
-			if(d.rows > 0 && d.cols > 0){
-				db.add(d);
-				inds.push_back(*iter);
-			}
-		}
-
-		DBoW3::QueryResults results;
-		const cv::Mat &d = signature->getWordsDescriptors();
-		db.query(d, results, -1);
-    	//db.query(signature->_bowvector, results, -1);
-		for(auto result: results)
-		{
-			int ind = inds[result.Id];
-			likelihood[ind] = result.Score;
-		}
-		//std::cout << "Query results: " << results << std::endl;
-	}
-
-	UDEBUG("compute likelihood (tf-idf) %f s", timer.ticks());
-	return likelihood;
-}
-/*
-std::map<int, float> Memory::computeLikelihoodNew(const Signature * signature, const std::list<int> & ids)
-{
-	
-	UTimer timer;
-	timer.start();
-	std::map<int, float> likelihood;
-
-	if(!signature)
-	{
-		ULOGGER_ERROR("The signature is null");
-		return likelihood;
-	}
-	else if(ids.empty())
-	{
-		UWARN("ids list is empty");
-		return likelihood;
-	}
-
-	for(std::list<int>::const_iterator iter = ids.begin(); iter!=ids.end(); ++iter)
-	{
-		likelihood.insert(likelihood.end(), std::pair<int, float>(*iter, 0.0f));
-	}
-
-	size_t N = this->getSignatures().size();
+	DBoW3::BowVector query = signature->_bowvector;
+	maps[signature->id()] = query;
 
 	if(N)
 	{
@@ -2131,16 +2150,22 @@ std::map<int, float> Memory::computeLikelihoodNew(const Signature * signature, c
 			}
 
 			if(s->_bowvector.size() > 0){
-				float score = _vocabulary->score(signature->_bowvector, s->_bowvector);
+				DBoW3::BowVector key = s->_bowvector;
+				float score = _vocabulary->score(query, key);
+				//float score = score_bow(query, key);
 				likelihood[*iter] = score;
+				maps[s->id()] = key;
 			}
 		}
 	}
 
 	UDEBUG("compute likelihood (tf-idf) %f s", timer.ticks());
+
+	std::string filePath = "results/new_maps_" + std::to_string(signature->id()) + ".json";
+	jsonDumpMap(filePath, maps);
 	return likelihood;
 }
-*/
+
 //--------------------------BOW-DEBUG-END-----------------
 //----------------------Likelihood-END------------------
 
@@ -2172,9 +2197,9 @@ std::list<int> Memory::forget(const std::set<int> & ignoredIds)
 	UDEBUG("");
 	std::list<int> signaturesRemoved;
 	if(this->isIncremental() &&
-	   _vwd->isIncremental() &&
-	   _vwd->getVisualWords().size() &&
-	   !_vwd->isIncrementalFlann())
+	_vwd->isIncremental() &&
+	_vwd->getVisualWords().size() &&
+	!_vwd->isIncrementalFlann())
 	{
 		// Note that when using incremental FLANN, the number of words
 		// is not the biggest issue, so use the number of signatures instead
@@ -4653,6 +4678,7 @@ private:
 	VWDictionary * _vwp;
 };
 
+
 Signature * Memory::createSignature(const SensorData & inputData, const Transform & pose, Statistics * stats)
 {
 	UDEBUG("");
@@ -5563,6 +5589,24 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 		//-----------------------BOW-DEBUG-START-----------------
 		//-----------------------Add-New-Words-------------------
 		// wordIds - list<int> mapping kps to wordIds
+
+		if (false)
+		{
+			cv::Mat features_;
+			cv::Ptr<cv::ORB> orb = cv::ORB::create(250);
+			std::vector<cv::KeyPoint> kps;
+		
+			orb->detect(data.imageRaw(), kps);
+    		orb->compute(data.imageRaw(), kps, features_);
+
+			cv::Mat image_with_keypoints;
+			cv::drawKeypoints(data.imageRaw(), keypoints, image_with_keypoints, cv::Scalar(0, 0, 255));
+			cv::drawKeypoints(image_with_keypoints, kps, image_with_keypoints, cv::Scalar(0, 255, 0));
+			// Display the original image and the one with keypoints
+			cv::imshow("Image with Keypoints", image_with_keypoints);
+			cv::waitKey(0);
+		}
+		
 		wordIds = _vwd->addNewWords(descriptorsForQuantization, id);
 		wordIds_DBoW = getWordsDBoW(descriptorsForQuantization, bowVector);
 
