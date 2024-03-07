@@ -15,7 +15,8 @@ INCLUDE(GNUInstallDirs)
 ####### local cmake modules #######
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules")
 
-include_directories("/home/gvasserm/dev/loop-closure-toolbox/src/DBoW3/include/")
+set(DBOW_DIRS "DBoW3/include/")
+include_directories(${DBOW_DIRS})
 
 find_package(nlohmann_json)
 
