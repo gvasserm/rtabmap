@@ -113,6 +113,9 @@ public:
 	
 	bool isEnabled() const {return _enabled;}
 	void setEnabled(bool enabled) {_enabled = enabled;}
+
+	const DBoW3::BowVector & getBowVectors() const {return _bowvector;}
+	
 	const std::multimap<int, int> & getWords() const {return _words;}
 	const std::vector<cv::KeyPoint> & getWordsKpts() const {return _wordsKpts;}
 	int getInvalidWordsCount() const {return _invalidWordsCount;}
