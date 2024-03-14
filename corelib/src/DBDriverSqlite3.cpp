@@ -3094,7 +3094,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 
 		ULOGGER_DEBUG("Time=%fs", timer.ticks());
 
-		//----------------------------------Start Loading Signatures--------------------------
+		//----------------------------------Start Loading words and descriptors--------------------------
 
 		// Prepare the query... Get the map from signature and visual words
 		std::stringstream query2;
