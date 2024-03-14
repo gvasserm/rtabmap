@@ -248,7 +248,7 @@ class RTABMAP_CORE_EXPORT Parameters
     // OpenCV>2 without xFeatures2D module doesn't have BRIEF
     RTABMAP_PARAM(Kp, DetectorStrategy,         int, 2,       "0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector");
 #else
-    RTABMAP_PARAM(Kp, DetectorStrategy,         int, 6,       "0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector");
+    RTABMAP_PARAM(Kp, DetectorStrategy,         int, 2,       "0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector");
 #endif
     RTABMAP_PARAM(Kp, TfIdfLikelihoodUsed,      bool, true,   "Use of the td-idf strategy to compute the likelihood.");
     RTABMAP_PARAM(Kp, Parallelized,             bool, true,   "If the dictionary update and signature creation were parallelized.");

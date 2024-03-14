@@ -2012,8 +2012,8 @@ bool Rtabmap::process(
 			}
 			
 			std::map<int, float> rawLikelihood1;
-			rawLikelihood = _memory->computeLikelihood(signature, signaturesToCompare);
-			rawLikelihood1 = _memory->computeLikelihoodNew(signature, signaturesToCompare);
+			rawLikelihood1 = _memory->computeLikelihood(signature, signaturesToCompare);
+			rawLikelihood = _memory->computeLikelihoodNew(signature, signaturesToCompare);
 			cerealize_likelihood("results/new_" + std::to_string(signature->id()) + ".csv", rawLikelihood1);
 			cerealize_likelihood("results/orig_" + std::to_string(signature->id()) + ".csv", rawLikelihood); 
 
