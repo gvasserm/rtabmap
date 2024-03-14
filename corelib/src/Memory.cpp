@@ -144,6 +144,7 @@ Memory::Memory(const ParametersMap & parameters) :
 	
 	_feature2D = Feature2D::create(parameters);
 	_vwd = new VWDictionary(parameters);
+	_vwd->setFixedDictionary();
 	_registrationPipeline = Registration::create(parameters);
 	if(!_registrationPipeline->isImageRequired())
 	{
@@ -5607,8 +5608,8 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 			cv::waitKey(0);
 		}
 		
-		wordIds = _vwd->addNewWords(descriptorsForQuantization, id);
-		wordIds_DBoW = getWordsDBoW(descriptorsForQuantization, bowVector);
+		//wordIds = _vwd->addNewWords(descriptorsForQuantization, id);
+		wordIds = getWordsDBoW(descriptorsForQuantization, bowVector);
 
 		// Set ID -1 to features not used for quantization
 		//Should not enter
