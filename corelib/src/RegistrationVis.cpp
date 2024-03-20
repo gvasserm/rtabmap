@@ -940,7 +940,7 @@ Transform RegistrationVis::computeTransformationImpl(
 							added.size(), duplicates);
 					if(cornersProjected.size())
 					{
-						if(_guessMatchToProjection)
+						if(_guessMatchToProjection) //guessMatchToProjection - off in Params
 						{
 							UDEBUG("match frame to projected");
 							// Create kd-tree for projected keypoints

@@ -46,6 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "DBoW3.h"
 
+#define DBOW 1
+
 namespace rtabmap {
 
 class Signature;
@@ -74,7 +76,7 @@ public:
 	Memory(const ParametersMap & parameters = ParametersMap());
 	virtual ~Memory();
 
-	std::list<int> getWordsDBoW(const cv::Mat & descriptorsIn, DBoW3::BowVector &bowVector);
+	std::list<int> getWordsDBoW(const cv::Mat & descriptorsIn);
 
 	virtual void parseParameters(const ParametersMap & parameters);
 	virtual const ParametersMap & getParameters() const {return parameters_;}

@@ -133,18 +133,20 @@ Memory::Memory(const ParametersMap & parameters) :
 	_parallelized(Parameters::defaultKpParallelized()),
 	_registrationVis(0)
 {
-
-	//=======Added init vocabulary (Genadiy)=====
-	_vocabulary = new DBoW3::Vocabulary();
-	std::string strVocFile = "/home/gvasserm/dev/loop-closure-toolbox/config/orbvoc.dbow3";
-	//std::string strVocFile = "/home/gvasserm/dev/loop-closure-toolbox/config/test_rgb_10_5.yaml";
-  	_vocabulary->load(strVocFile);
-	//_vocabulary->setScoringType(DBoW3::ScoringType::DOT_PRODUCT);
-	//============
-	
 	_feature2D = Feature2D::create(parameters);
 	_vwd = new VWDictionary(parameters);
-	_vwd->setFixedDictionary();
+
+	//=======Added init vocabulary (Genadiy)=====
+	if (DBOW){
+		_vocabulary = new DBoW3::Vocabulary();
+		std::string strVocFile = "/home/gvasserm/dev/loop-closure-toolbox/config/orbvoc.dbow3";
+		//std::string strVocFile = "/home/gvasserm/dev/loop-closure-toolbox/config/test_rgb_10_5.yaml";
+		_vocabulary->load(strVocFile);
+		//_vocabulary->setScoringType(DBoW3::ScoringType::DOT_PRODUCT);
+		_vwd->setFixedDictionary();
+		//============
+	}
+
 	_registrationPipeline = Registration::create(parameters);
 	if(!_registrationPipeline->isImageRequired())
 	{
@@ -183,11 +185,8 @@ std::vector<cv::Mat> toDescriptorVector(const cv::Mat &Descriptors)
     return vDesc;
 }
 
-std::list<int> Memory::getWordsDBoW(const cv::Mat &descriptorsIn, DBoW3::BowVector &bowVector)
+std::list<int> Memory::getWordsDBoW(const cv::Mat &descriptorsIn)
 {
-	DBoW3::FeatureVector featVec;
-	_vocabulary->transform(descriptorsIn, bowVector);
-
     std::list<int> words;
     for(int i=0; i<descriptorsIn.rows;++i)
     {
@@ -4680,6 +4679,20 @@ private:
 };
 
 
+struct KeyPointWithDescriptor {
+    cv::KeyPoint keypoint;
+    cv::Mat descriptor;
+    // Constructor
+    KeyPointWithDescriptor(const cv::KeyPoint& kp, const cv::Mat& desc) : keypoint(kp), descriptor(desc) {}
+};
+
+
+bool compareKeypointResponse(const KeyPointWithDescriptor& kp1, const KeyPointWithDescriptor& kp2) {
+    // Sort in descending order of response (higher response first)
+    return kp1.keypoint.response > kp2.keypoint.response;
+}
+
+
 Signature * Memory::createSignature(const SensorData & inputData, const Transform & pose, Statistics * stats)
 {
 	UDEBUG("");
@@ -5607,9 +5620,34 @@ Signature * Memory::createSignature(const SensorData & inputData, const Transfor
 			cv::imshow("Image with Keypoints", image_with_keypoints);
 			cv::waitKey(0);
 		}
-		
-		//wordIds = _vwd->addNewWords(descriptorsForQuantization, id);
-		wordIds = getWordsDBoW(descriptorsForQuantization, bowVector);
+
+		if(DBOW){
+			// Combine the keypoints with their descriptors
+			std::vector<KeyPointWithDescriptor> combined;
+			for(size_t i = 0; i < keypoints.size(); ++i) {
+				combined.push_back(KeyPointWithDescriptor(keypoints[i], descriptorsForQuantization.row(i)));
+			}
+
+			// Sort keypoints by their score (response)
+			std::sort(combined.begin(), combined.end(), compareKeypointResponse);
+
+			// Separate them back while maintaining the sorted order
+			cv::Mat sortedDescriptors;
+			int i = 0;
+			for(const auto& item : combined) {
+				if (i>=500){
+					break;
+				}
+				sortedDescriptors.push_back(item.descriptor);
+				++i;
+			}
+
+			_vocabulary->transform(sortedDescriptors, bowVector);
+			wordIds = getWordsDBoW(descriptorsForQuantization);
+		}
+		else{
+			wordIds = _vwd->addNewWords(descriptorsForQuantization, id);
+		}
 
 		// Set ID -1 to features not used for quantization
 		//Should not enter
