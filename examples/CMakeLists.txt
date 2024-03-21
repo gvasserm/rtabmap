@@ -5,7 +5,6 @@ ADD_SUBDIRECTORY( RBOWDemo )
 ADD_SUBDIRECTORY( RgbdDataset )
 ADD_SUBDIRECTORY( EurocDataset )
 ADD_SUBDIRECTORY( NoEventsExample )
-ADD_SUBDIRECTORY( NoEventsExample )
 
 IF(TARGET rtabmap_gui)
    #ADD_SUBDIRECTORY( RGBDMapping )
