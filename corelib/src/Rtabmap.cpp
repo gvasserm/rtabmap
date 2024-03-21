@@ -2016,8 +2016,8 @@ bool Rtabmap::process(
 			//rawLikelihood1 = _memory->computeLikelihood(signature, signaturesToCompare);
 			if(DBOW){
 				rawLikelihood = _memory->computeLikelihoodNew(signature, signaturesToCompare);
-				cerealize_likelihood("results/new_" + std::to_string(signature->id()) + ".csv", rawLikelihood1);
-				cerealize_likelihood("results/orig_" + std::to_string(signature->id()) + ".csv", rawLikelihood); 
+				//cerealize_likelihood("results/new_" + std::to_string(signature->id()) + ".csv", rawLikelihood1);
+				//cerealize_likelihood("results/orig_" + std::to_string(signature->id()) + ".csv", rawLikelihood); 
 			}
 			else{
 				rawLikelihood = _memory->computeLikelihood(signature, signaturesToCompare);

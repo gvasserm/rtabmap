@@ -44,6 +44,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <signal.h>
 
+#include "MapBuilder.h"
+#include <pcl/visualization/cloud_viewer.h>
+#include <QApplication>
+#include <stdio.h>
+
 using namespace rtabmap;
 
 void showUsage()
@@ -237,6 +242,11 @@ int main(int argc, char * argv[])
 		Rtabmap rtabmap;
 		rtabmap.init(parameters, databasePath);
 
+		QApplication app(argc, argv);
+		MapBuilder mapBuilder;
+		mapBuilder.show();
+		QApplication::processEvents();
+
 		UTimer totalTime;
 		UTimer timer;
 		CameraInfo cameraInfo;
@@ -249,7 +259,8 @@ int main(int argc, char * argv[])
 		int odomKeyFrames = 0;
 		double previousStamp = 0.0;
 		int skipCount = 0;
-		while(data.isValid() && g_forever)
+		printf("Press \"Space\" in the window to pause\n");
+		while(data.isValid() && g_forever && mapBuilder.isVisible())
 		{
 			if(skipCount < skipFrames)
 			{
@@ -340,6 +351,40 @@ int main(int argc, char * argv[])
 
 				OdometryEvent e(SensorData(), Transform(), odomInfo);
 				rtabmap.process(data, pose, odomInfo.reg.covariance, e.velocity(), externalStats);
+				mapBuilder.processStatistics(rtabmap.getStatistics());
+				
+				if (rtabmap.getLoopClosureId())
+				{
+					printf(" #%d ptime(%fs) STM(%d) WM(%d) hyp(%d) value(%.2f) *LOOP %d->%d*\n",
+						   iteration,
+						   rtabmap.getLastProcessTime(),
+						   (int)rtabmap.getSTM().size(), // short-term memory
+						   (int)rtabmap.getWM().size(),	 // working memory
+						   rtabmap.getLoopClosureId(),
+						   rtabmap.getLoopClosureValue(),
+						   iteration,
+						   rtabmap.getLoopClosureId());
+				}
+				else
+				{
+					printf(" #%d ptime(%fs) STM(%d) WM(%d) hyp(%d) value(%.2f)\n",
+						   iteration,
+						   rtabmap.getLastProcessTime(),
+						   (int)rtabmap.getSTM().size(),	 // short-term memory
+						   (int)rtabmap.getWM().size(),		 // working memory
+						   rtabmap.getHighestHypothesisId(), // highest loop closure hypothesis
+						   rtabmap.getLoopClosureValue());
+				}
+				mapBuilder.processOdometry(data, pose, odomInfo);
+
+				QApplication::processEvents();
+
+				while(mapBuilder.isPaused() && mapBuilder.isVisible())
+				{
+					uSleep(100);
+					QApplication::processEvents();
+				}
+
 			}
 
 			++iteration;
@@ -380,6 +425,11 @@ int main(int argc, char * argv[])
 			data = cameraThread.camera()->takeImage(&cameraInfo);
 		}
 		delete odom;
+		if(mapBuilder.isVisible())
+		{
+			printf("Processed all frames\n");
+			app.exec();
+		}
 		printf("Total time=%fs\n", totalTime.ticks());
 		/////////////////////////////
 		// Processing dataset end

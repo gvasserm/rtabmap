@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "DBoW3.h"
 
-#define DBOW 1
+#define DBOW 0
 
 namespace rtabmap {
 
