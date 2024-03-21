@@ -45,6 +45,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/utilite/UMath.h>
 #include <opencv2/core/core_c.h>
 
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/archives/json.hpp>
+
+#include <rtabmap/core/cereal_serializations.h>
+
 #if defined(HAVE_OPENCV_XFEATURES2D) && (CV_MAJOR_VERSION > 3 || (CV_MAJOR_VERSION==3 && CV_MINOR_VERSION >=4 && CV_SUBMINOR_VERSION >= 1))
 #include <opencv2/xfeatures2d.hpp> // For GMS matcher
 #endif
@@ -1663,6 +1670,76 @@ Transform RegistrationVis::computeTransformationImpl(
 									&inliersV);
 							inliers[dir] = inliersV;
 							matches[dir] = matchesV;
+						}
+
+						if(false)
+						{
+
+							// std::vector<int> ids = uKeys(words2B);
+							// std::vector<cv::KeyPoint> kpsA(ids.size());
+							// std::vector<cv::KeyPoint> kpsB(ids.size());
+
+							// for(unsigned int i=0; i<ids.size(); ++i)
+							// {
+							// 	std::map<int, cv::Point3f>::const_iterator iter=words3A.find(ids[i]);
+							// 	if(iter != words3A.end() && util3d::isFinite(iter->second))
+							// 	{
+							// 		const cv::Point3f & pt = iter->second;
+							// 		objectPoints[oi].x = pt.x;
+							// 		objectPoints[oi].y = pt.y;
+							// 		objectPoints[oi].z = pt.z;
+							// 		imagePoints[oi] = words2B.find(ids[i])->second.pt;
+
+							// 		int oi=0;
+							// 		matches[oi++] = ids[i];
+							// 	}
+							// }
+
+							// for(std::map<int, int>::iterator iter=uniqueWordsA.begin(); iter!=uniqueWordsA.end(); ++iter)
+							// {
+
+							// }
+
+							std::vector<int> indA = uKeys(words3A);
+							std::vector<int> indB = uKeys(wordsB);
+
+							std::string filename = "out.yaml";
+
+							cv::FileStorage fs(filename, cv::FileStorage::WRITE);
+
+							fs << "keypointsA" << signatureA->sensorData().keypoints();
+							fs << "keypointsB" << signatureB->sensorData().keypoints();
+
+							fs << "indA" << indA;
+							fs << "indB" << indA;
+							fs << "matches" << matches[0];
+
+
+							fs.release(); // Don't forget to release the file storage
+
+							std::vector<cv::KeyPoint> vectorKeyPointsA = signatureA->sensorData().keypoints();
+							cv::Mat image_with_keypoints;
+							 // Convert std::map<int, cv::KeyPoint> to std::vector<cv::KeyPoint>
+							std::vector<cv::KeyPoint> vectorKeyPoints;
+							for(const auto& pair : wordsB) {
+								vectorKeyPoints.push_back(pair.second); // Insert the cv::KeyPoint into the vector
+							}
+
+							//std::stringstream os;
+							// assign the string stream object to the Output Archive 
+							//cereal::JSONOutputArchive archive_out(os);
+
+							// {
+							// 	std::ofstream file("file.bin", std::ios::binary);
+							// 	cereal::BinaryOutputArchive ar(file);
+							// 	ar(signatureB->sensorData().imageRaw());
+							// }
+
+							saveKeyPointsToCSV(wordsB, "kpB.csv");
+
+							cv::drawKeypoints(signatureB->sensorData().imageRaw(), vectorKeyPoints, image_with_keypoints, cv::Scalar(0, 0, 255));
+							cv::imshow("", image_with_keypoints);
+							cv::waitKey(1);
 						}
 						UDEBUG("inliers: %d/%d", (int)inliersV.size(), (int)matchesV.size());
 						if(transforms[dir].isNull())

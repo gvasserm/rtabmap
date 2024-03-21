@@ -19,6 +19,7 @@ set(DBOW_DIRS "DBoW3/include/")
 include_directories(${DBOW_DIRS})
 
 find_package(nlohmann_json)
+find_package(cereal)
 
 #######################
 # VERSION

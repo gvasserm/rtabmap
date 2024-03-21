@@ -340,6 +340,33 @@ int main(int argc, char * argv[])
 
 				OdometryEvent e(SensorData(), Transform(), odomInfo);
 				rtabmap.process(data, pose, odomInfo.reg.covariance, e.velocity(), externalStats);
+
+				//---------------------------------------------
+				if (rtabmap.getLoopClosureId())
+				{
+					printf(" #%d ptime(%fs) STM(%d) WM(%d) hyp(%d) value(%.2f) *LOOP %d->%d*\n",
+						iteration,
+						rtabmap.getLastProcessTime(),
+						(int)rtabmap.getSTM().size(), // short-term memory
+						(int)rtabmap.getWM().size(),	 // working memory
+						rtabmap.getLoopClosureId(),
+						rtabmap.getLoopClosureValue(),
+						iteration+1,
+						rtabmap.getLoopClosureId());
+						std::cout << "Yes Loop" << std::endl;
+				}
+				else
+				{
+					printf(" #%d ptime(%fs) STM(%d) WM(%d) hyp(%d) value(%.2f)\n",
+						iteration,
+						rtabmap.getLastProcessTime(),
+						(int)rtabmap.getSTM().size(),	 // short-term memory
+						(int)rtabmap.getWM().size(),		 // working memory
+						rtabmap.getHighestHypothesisId(), // highest loop closure hypothesis
+						rtabmap.getLoopClosureValue());
+						std::cout << "No Loop" << std::endl;
+				}
+				//-----------------------------------------------
 			}
 
 			++iteration;
