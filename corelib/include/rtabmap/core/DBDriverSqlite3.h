@@ -80,6 +80,10 @@ protected:
 
 	virtual void getWeightQuery(int signatureId, int & weight) const;
 
+	//-----------------------BOW-DEBUG-START------------------
+	virtual void saveQuery(const std::list<Signature *> & signatures);
+	//-----------------------BOW-DEBUG-END------------------
+
 	virtual void saveQuery(const std::list<Signature *> & signatures);
 	virtual void saveQuery(const std::list<VisualWord *> & words) const;
 	virtual void updateQuery(const std::list<Signature *> & signatures, bool updateTimestamp) const;
@@ -177,6 +181,12 @@ private:
 	void stepSensorData(sqlite3_stmt * ppStmt, const SensorData & sensorData) const;
 	void stepLink(sqlite3_stmt * ppStmt, const Link & link) const;
 	void stepWordsChanged(sqlite3_stmt * ppStmt, int signatureId, int oldWordId, int newWordId) const;
+	
+	//-----------------------BOW-DEBUG-START-----------------
+	void stepBowVector(sqlite3_stmt * ppStmt, int nodeId, int wordId, float tf_idf) const;
+	std::string queryStepBoWVector() const;
+	//-----------------------BOW-DEBUG-END-------------------
+	
 	void stepKeypoint(sqlite3_stmt * ppStmt, int nodeID, int wordId, const cv::KeyPoint & kp, const cv::Point3f & pt, const cv::Mat & descriptor) const;
 	void stepGlobalDescriptor(sqlite3_stmt * ppStmt, int nodeId, const GlobalDescriptor & descriptor) const;
 	void stepOccupancyGridUpdate(sqlite3_stmt * ppStmt,

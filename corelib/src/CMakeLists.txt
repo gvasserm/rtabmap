@@ -13,6 +13,8 @@ SET(SRC_FILES
     
     Recovery.cpp
     
+	Cerealize.cpp
+	
     Camera.cpp
     CameraThread.cpp
     CameraModel.cpp

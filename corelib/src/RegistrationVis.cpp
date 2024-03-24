@@ -45,6 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/utilite/UMath.h>
 #include <opencv2/core/core_c.h>
 
+#include <rtabmap/core/Cerealize.h>
+
 #if defined(HAVE_OPENCV_XFEATURES2D) && (CV_MAJOR_VERSION > 3 || (CV_MAJOR_VERSION==3 && CV_MINOR_VERSION >=4 && CV_SUBMINOR_VERSION >= 1))
 #include <opencv2/xfeatures2d.hpp> // For GMS matcher
 #endif
@@ -1665,6 +1667,36 @@ Transform RegistrationVis::computeTransformationImpl(
 							matches[dir] = matchesV;
 						}
 						UDEBUG("inliers: %d/%d", (int)inliersV.size(), (int)matchesV.size());
+
+						if (true)
+						{
+							int ID = signatureB->id();
+							const std::string fKA = "results/kpsA" + std::to_string(ID) + ".csv";
+							const std::string fKB = "results/kpsB" + std::to_string(ID) + ".csv";
+
+							const std::string fiA = "results/iA" + std::to_string(ID) + ".csv";
+							const std::string fiB = "results/iB" + std::to_string(ID) + ".csv";
+
+							const std::string fi = "results/ind" + std::to_string(ID) + ".csv";
+
+							const std::string imA = "results/imA" + std::to_string(ID) + ".jpg";
+							const std::string imB = "results/imB" + std::to_string(ID) + ".jpg";
+
+							cv::imwrite(imA, signatureA->sensorData().imageRaw());
+							cv::imwrite(imB, signatureB->sensorData().imageRaw());
+
+							std::vector<int> idB = uKeys(wordsB);
+							std::vector<int> idA = uKeys(words3A);
+
+							serializeKeyPointsToSimpleFormat(signatureA->getWordsKpts(), fKA);
+							serializeKeyPointsToSimpleFormat(signatureB->getWordsKpts(), fKB);
+
+							serializeVectorToSimpleFormat(idA, fiA);
+							serializeVectorToSimpleFormat(idB, fiB);
+
+							serializeVectorToSimpleFormat(matchesV, fi);
+						}
+
 						if(transforms[dir].isNull())
 						{
 							msg = uFormat("Not enough inliers %d/%d (matches=%d) between %d and %d",

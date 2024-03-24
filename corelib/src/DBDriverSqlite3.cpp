@@ -4372,6 +4372,26 @@ void DBDriverSqlite3::saveQuery(const std::list<Signature *> & signatures)
 		UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
 		UDEBUG("Time=%fs", timer.ticks());
 
+		//-----------------------BOW-DEBUG-START------------------
+		// Create new entries in table Feature
+		if(true){
+			query = queryStepBoWVector();
+			rc = sqlite3_prepare_v2(_ppDb, query.c_str(), -1, &ppStmt, 0);
+			UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
+			for(std::list<Signature *>::const_iterator i=signatures.begin(); i!=signatures.end(); ++i)
+			{
+				UASSERT((*i)->getBowVectors().empty());
+				for(DBoW3::BowVector::const_iterator bv=(*i)->getBowVectors().begin(); bv!=(*i)->getBowVectors().end(); ++bv){
+					stepBowVector(ppStmt, (*i)->id(), bv->first, bv->second);
+				}
+			}
+			// Finalize (delete) the statement
+			rc = sqlite3_finalize(ppStmt);
+			UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
+			UDEBUG("Time=%fs", timer.ticks());
+		}
+		//-----------------------BOW-DEBUG-END---------------------
+
 		if(uStrNumCmp(_version, "0.20.0") >= 0)
 		{
 			// Global descriptor table
@@ -6591,6 +6611,24 @@ std::string DBDriverSqlite3::queryStepKeypoint() const
 	}
 	return "INSERT INTO Map_Node_Word(node_id, word_id, pos_x, pos_y, size, dir, response, depth_x, depth_y, depth_z) VALUES(?,?,?,?,?,?,?,?,?,?);";
 }
+
+std::string DBDriverSqlite3::queryStepBoWVector() const
+{
+	if(uStrNumCmp(_version, "0.13.0") >= 0)
+	{
+		return "INSERT INTO Feature(node_id, word_id, tf_idf) VALUES(?,?,?);";
+	}
+	else if(uStrNumCmp(_version, "0.12.0") >= 0)
+	{
+		return "INSERT INTO Map_Node_Word(node_id, word_id, tf_idf) VALUES(?,?,?);";
+	}
+	else if(uStrNumCmp(_version, "0.11.2") >= 0)
+	{
+		return "INSERT INTO Map_Node_Word(node_id, word_id, tf_idf) VALUES(?,?,?);";
+	}
+	return "INSERT INTO Map_Node_Word(node_id, word_id, tf_idf) VALUES(?,?,?);";
+}
+
 void DBDriverSqlite3::stepKeypoint(sqlite3_stmt * ppStmt,
 		int nodeId,
 		int wordId,
@@ -6683,6 +6721,31 @@ void DBDriverSqlite3::stepKeypoint(sqlite3_stmt * ppStmt,
 		UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
 	}
 
+	rc=sqlite3_step(ppStmt);
+	UASSERT_MSG(rc == SQLITE_DONE, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
+
+	rc = sqlite3_reset(ppStmt);
+	UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
+}
+
+void DBDriverSqlite3::stepBowVector(sqlite3_stmt * ppStmt,
+		int nodeId,
+		int wordId,
+		float tf_idf) const
+{
+	if(!ppStmt)
+	{
+		UFATAL("");
+	}
+	int rc = SQLITE_OK;
+	int index = 1;
+	rc = sqlite3_bind_int(ppStmt, index++, nodeId);
+	UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
+	rc = sqlite3_bind_int(ppStmt, index++, wordId);
+	UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
+	rc = sqlite3_bind_double(ppStmt, index++, tf_idf);
+	UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
+	
 	rc=sqlite3_step(ppStmt);
 	UASSERT_MSG(rc == SQLITE_DONE, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
 
