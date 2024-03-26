@@ -84,7 +84,6 @@ protected:
 	virtual void saveQuery(const std::list<Signature *> & signatures);
 	//-----------------------BOW-DEBUG-END------------------
 
-	virtual void saveQuery(const std::list<Signature *> & signatures);
 	virtual void saveQuery(const std::list<VisualWord *> & words) const;
 	virtual void updateQuery(const std::list<Signature *> & signatures, bool updateTimestamp) const;
 	virtual void updateQuery(const std::list<VisualWord *> & words, bool updateTimestamp) const;

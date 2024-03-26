@@ -4374,7 +4374,7 @@ void DBDriverSqlite3::saveQuery(const std::list<Signature *> & signatures)
 
 		//-----------------------BOW-DEBUG-START------------------
 		// Create new entries in table Feature
-		if(true){
+		if(false){
 			query = queryStepBoWVector();
 			rc = sqlite3_prepare_v2(_ppDb, query.c_str(), -1, &ppStmt, 0);
 			UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());

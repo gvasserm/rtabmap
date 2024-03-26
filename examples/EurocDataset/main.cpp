@@ -510,6 +510,29 @@ int main(int argc, char * argv[])
 				covariance = cv::Mat();
 			}
 
+			if (rtabmap.getLoopClosureId())
+			{
+				printf(" #%d ptime(%fs) STM(%d) WM(%d) hyp(%d) value(%.2f) *LOOP %d->%d*\n",
+						iteration,
+						rtabmap.getLastProcessTime(),
+						(int)rtabmap.getSTM().size(), // short-term memory
+						(int)rtabmap.getWM().size(),	 // working memory
+						rtabmap.getLoopClosureId(),
+						rtabmap.getLoopClosureValue(),
+						iteration,
+						rtabmap.getLoopClosureId());
+			}
+			else
+			{
+				printf(" #%d ptime(%fs) STM(%d) WM(%d) hyp(%d) value(%.2f)\n",
+						iteration,
+						rtabmap.getLastProcessTime(),
+						(int)rtabmap.getSTM().size(),	 // short-term memory
+						(int)rtabmap.getWM().size(),		 // working memory
+						rtabmap.getHighestHypothesisId(), // highest loop closure hypothesis
+						rtabmap.getLoopClosureValue());
+			}
+
 			++iteration;
 			if(!quiet || iteration == totalImages)
 			{

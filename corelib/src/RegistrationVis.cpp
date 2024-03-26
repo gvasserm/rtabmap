@@ -1589,13 +1589,20 @@ Transform RegistrationVis::computeTransformationImpl(
 						std::vector<int> matchesV;
 						std::map<int, int> uniqueWordsA = uMultimapToMapUnique(signatureA->getWords());
 						std::map<int, int> uniqueWordsB = uMultimapToMapUnique(signatureB->getWords());
+						
 						std::map<int, cv::Point3f> words3A;
+						
+						std::map<int, cv::KeyPoint> wordsA;
+
 						std::map<int, cv::Point3f> words3B;
 						std::map<int, cv::KeyPoint> wordsB;
+
 						for(std::map<int, int>::iterator iter=uniqueWordsA.begin(); iter!=uniqueWordsA.end(); ++iter)
 						{
 							words3A.insert(std::make_pair(iter->first, signatureA->getWords3()[iter->second]));
+							wordsA.insert(std::make_pair(iter->first, signatureA->getWordsKpts()[iter->second]));
 						}
+						
 						for(std::map<int, int>::iterator iter=uniqueWordsB.begin(); iter!=uniqueWordsB.end(); ++iter)
 						{
 							wordsB.insert(std::make_pair(iter->first, signatureB->getWordsKpts()[iter->second]));
@@ -1665,37 +1672,96 @@ Transform RegistrationVis::computeTransformationImpl(
 									&inliersV);
 							inliers[dir] = inliersV;
 							matches[dir] = matchesV;
+
+
+							if(true && inliersV.size() >0)
+							{
+
+								std::vector<cv::KeyPoint> kpa =  signatureA->getWordsKpts();
+								std::vector<cv::KeyPoint> kpb =  signatureB->getWordsKpts();
+
+								std::vector<cv::KeyPoint> kpAm, kpBm;
+								std::vector< cv::DMatch > matches;
+								int j =0;
+								for (size_t i = 0; i < inliersV.size(); ++i)
+								{
+									int id = inliersV[i];
+									// Ensure the ID exists in both maps before accessing
+									if (wordsA.find(id) != wordsA.end() && wordsB.find(id) != wordsB.end())
+									{
+										// Add the corresponding 3D point and 2D keypoint to the vectors
+										kpAm.push_back(wordsA[id]);
+										kpBm.push_back(wordsB[id]); // .pt to get the Point2f from KeyPoint
+										matches.push_back(cv::DMatch(j, j, 0));
+										++j;
+									}
+								}
+
+			
+								cv::Mat imA, imB;
+								imA = signatureA->sensorData().imageRaw();
+								imB = signatureB->sensorData().imageRaw();
+
+								if(imA.rows==0){
+									imA = imB.clone();
+								}
+
+								if(true)
+								{
+									cv::Mat outImg;
+									cv::drawMatches(imA, kpAm, imB, kpBm, matches, outImg );
+									cv::imshow( "matches", outImg );
+									cv::waitKey(1);
+								}
+
+								int ID = signatureB->id();
+
+								const std::string fKA = "results/kpsA" + std::to_string(ID) + ".csv";
+								const std::string fKB = "results/kpsB" + std::to_string(ID) + ".csv";
+
+								serializeKeyPointsToSimpleFormat(kpAm, fKA);
+								serializeKeyPointsToSimpleFormat(kpBm, fKB);
+
+								const std::string fimA = "results/imA" + std::to_string(ID) + ".jpg";
+								const std::string fimB = "results/imB" + std::to_string(ID) + ".jpg";
+
+								cv::imwrite(fimA, imA);
+								cv::imwrite(fimB, imB);
+							}
+
+							if (false)
+							{
+								int ID = signatureB->id();
+								const std::string fKA = "results/kpsA" + std::to_string(ID) + ".csv";
+								const std::string fKB = "results/kpsB" + std::to_string(ID) + ".csv";
+
+								const std::string fiA = "results/iA" + std::to_string(ID) + ".csv";
+								const std::string fiB = "results/iB" + std::to_string(ID) + ".csv";
+
+								const std::string fi = "results/ind" + std::to_string(ID) + ".csv";
+
+								const std::string imA = "results/imA" + std::to_string(ID) + ".jpg";
+								const std::string imB = "results/imB" + std::to_string(ID) + ".jpg";
+
+								if(signatureA->sensorData().imageRaw().rows>0){
+									cv::imwrite(imA, signatureA->sensorData().imageRaw());
+								}
+								cv::imwrite(imB, signatureB->sensorData().imageRaw());
+
+								std::vector<int> idB = uKeys(wordsB);
+								std::vector<int> idA = uKeys(words3A);
+
+								serializeKeyPointsToSimpleFormat(signatureA->getWordsKpts(), fKA);
+								serializeKeyPointsToSimpleFormat(signatureB->getWordsKpts(), fKB);
+
+								serializeVectorToSimpleFormat(idA, fiA);
+								serializeVectorToSimpleFormat(idB, fiB);
+
+								serializeVectorToSimpleFormat(matchesV, fi);
+							}
 						}
 						UDEBUG("inliers: %d/%d", (int)inliersV.size(), (int)matchesV.size());
 
-						if (true)
-						{
-							int ID = signatureB->id();
-							const std::string fKA = "results/kpsA" + std::to_string(ID) + ".csv";
-							const std::string fKB = "results/kpsB" + std::to_string(ID) + ".csv";
-
-							const std::string fiA = "results/iA" + std::to_string(ID) + ".csv";
-							const std::string fiB = "results/iB" + std::to_string(ID) + ".csv";
-
-							const std::string fi = "results/ind" + std::to_string(ID) + ".csv";
-
-							const std::string imA = "results/imA" + std::to_string(ID) + ".jpg";
-							const std::string imB = "results/imB" + std::to_string(ID) + ".jpg";
-
-							cv::imwrite(imA, signatureA->sensorData().imageRaw());
-							cv::imwrite(imB, signatureB->sensorData().imageRaw());
-
-							std::vector<int> idB = uKeys(wordsB);
-							std::vector<int> idA = uKeys(words3A);
-
-							serializeKeyPointsToSimpleFormat(signatureA->getWordsKpts(), fKA);
-							serializeKeyPointsToSimpleFormat(signatureB->getWordsKpts(), fKB);
-
-							serializeVectorToSimpleFormat(idA, fiA);
-							serializeVectorToSimpleFormat(idB, fiB);
-
-							serializeVectorToSimpleFormat(matchesV, fi);
-						}
 
 						if(transforms[dir].isNull())
 						{
