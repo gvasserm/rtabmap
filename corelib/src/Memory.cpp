@@ -1938,7 +1938,7 @@ int jsonDumpMap(std::string filePath, const std::map<int, DBoW3::BowVector> &dat
 std::map<int, float> Memory::computeLikelihood(const Signature * signature, const std::list<int> & ids)
 {
 
-	std::map<int, DBoW3::BowVector> maps;
+	//std::map<int, DBoW3::BowVector> maps;
 
 	if(!_tfIdfLikelihoodUsed)
 	{
@@ -2041,8 +2041,7 @@ std::map<int, float> Memory::computeLikelihood(const Signature * signature, cons
 									{
 										//UDEBUG("%d, %f %f %f %f", vw->id(), logNnw, nwi, ni, ( nwi  * logNnw ) / ni);
 										iter->second += ( nwi  * logNnw ) / ni;
-										maps[j->first][vw->id()] = ( nwi  * logNnw ) / ni;
-
+										//maps[j->first][vw->id()] = ( nwi  * logNnw ) / ni;
 										//std::cout << j->first << std::endl;
 									}
 								}
@@ -2054,8 +2053,8 @@ std::map<int, float> Memory::computeLikelihood(const Signature * signature, cons
 		}
 
 		UDEBUG("compute likelihood (tf-idf) %f s", timer.ticks());
-		std::string filePath = "results/orig_maps_" + std::to_string(signature->id()) + ".json";
-		jsonDumpMap(filePath, maps);
+		//std::string filePath = "results/orig_maps_" + std::to_string(signature->id()) + ".json";
+		//jsonDumpMap(filePath, maps);
     	
 		return likelihood;
 	}

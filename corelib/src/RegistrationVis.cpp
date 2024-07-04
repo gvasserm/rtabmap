@@ -1719,8 +1719,8 @@ Transform RegistrationVis::computeTransformationImpl(
 								const std::string fKA = "results/kpsA" + std::to_string(ID) + ".csv";
 								const std::string fKB = "results/kpsB" + std::to_string(ID) + ".csv";
 
-								serializeKeyPointsToSimpleFormat(kpAm, fKA);
-								serializeKeyPointsToSimpleFormat(kpBm, fKB);
+								cerealizeKeyPointsToSimpleFormat(kpAm, fKA);
+								cerealizeKeyPointsToSimpleFormat(kpBm, fKB);
 
 								const std::string fimA = "results/imA" + std::to_string(ID) + ".jpg";
 								const std::string fimB = "results/imB" + std::to_string(ID) + ".jpg";
@@ -1751,13 +1751,13 @@ Transform RegistrationVis::computeTransformationImpl(
 								std::vector<int> idB = uKeys(wordsB);
 								std::vector<int> idA = uKeys(words3A);
 
-								serializeKeyPointsToSimpleFormat(signatureA->getWordsKpts(), fKA);
-								serializeKeyPointsToSimpleFormat(signatureB->getWordsKpts(), fKB);
+								cerealizeKeyPointsToSimpleFormat(signatureA->getWordsKpts(), fKA);
+								cerealizeKeyPointsToSimpleFormat(signatureB->getWordsKpts(), fKB);
 
-								serializeVectorToSimpleFormat(idA, fiA);
-								serializeVectorToSimpleFormat(idB, fiB);
+								cerealizeVectorToSimpleFormat(idA, fiA);
+								cerealizeVectorToSimpleFormat(idB, fiB);
 
-								serializeVectorToSimpleFormat(matchesV, fi);
+								cerealizeVectorToSimpleFormat(matchesV, fi);
 							}
 						}
 						UDEBUG("inliers: %d/%d", (int)inliersV.size(), (int)matchesV.size());

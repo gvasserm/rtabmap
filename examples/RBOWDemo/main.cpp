@@ -43,8 +43,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rtabmap/core/Memory.h"
 #include "rtabmap/core/VWDictionary.h"
 #include "rtabmap/core/VisualWord.h"
+#include "rtabmap/core/Cerealize.h"
 
-#include "DBoW3.h"
+#include "tqdm/tqdm.h"
 
 #ifdef RTABMAP_PYTHON
 #include "rtabmap/core/PythonInterface.h"
@@ -52,6 +53,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace rtabmap;
 using namespace cv;
+
+int load_loop_closures(const std::string &path2file, 
+	std::vector<std::pair<int, float>> &data) 
+{
+    
+	std::ifstream file(path2file);
+    if (!file.is_open()) {
+        std::cerr << "Could not open the file!" << std::endl;
+        return 1;
+    }
+
+    int key;
+    float value;
+    char delimiter;
+
+    while (file >> key >> delimiter >> value) {
+        if (delimiter == ',') {
+            data.push_back(std::make_pair(key, value));
+        }
+    }
+
+    file.close();
+    return 0;
+}
 
 
 std::vector<cv::Mat> toDescriptorVector(const cv::Mat &Descriptors)
@@ -80,12 +105,14 @@ bool has_extension(const std::string& file, const std::vector<std::string>& exts
 	return false;
 }
 
-void get_files(std::vector<std::string> &files_in_dir)
+void get_files(const std::string &path, std::vector<std::string> &files_in_dir, std::vector<std::string> extension={".png", ".jpg", ".tif", ".bmp"})
 {
 	DIR *dir;
     struct dirent *ent;
-    std::string path = "/home/gvasserm/Downloads/Bicocca_Static_Lamps/temp/"; // Change this to your directory path
-    std::vector<std::string> extension = {".png", ".jpg", ".tif", ".bmp"}; // Change this to the desired extension
+	
+	//std::vector<std::string> extension = {".yml"};
+	//std::string path = "data/samples/"; // Change this to your directory path
+    //std::vector<std::string> extension = ; // Change this to the desired extension
 
 	if ((dir = opendir(path.c_str())) != NULL) {
         while ((ent = readdir(dir)) != NULL) {
@@ -136,6 +163,8 @@ std::map<int, float> computeLikelihood(VWDictionary* vwd,
 		
 		UDEBUG("processing... ");
 		//run on all words in the image
+
+		std::cout << ids.size() << std::endl;
 		for(std::list<int>::const_iterator i=wordIds.begin(); i!=wordIds.end(); ++i)
 		{
 			if(*i>0)
@@ -173,118 +202,273 @@ std::map<int, float> computeLikelihood(VWDictionary* vwd,
 			}
 		}
 		UDEBUG("compute likelihood (tf-idf) %f s", timer.ticks());
+		std::cout << "compute likelihood (tf-idf) " << timer.ticks() << std::endl;
 		return likelihood;
 	}
 }
 
-
-int main(int argc, char * argv[])
+cv::Mat load_descriptors(const std::string &file_path)
 {
+    // Create a FileStorage object for reading
+    cv::FileStorage file_storage(file_path, cv::FileStorage::READ);
+
+    // Read the descriptors
+    cv::Mat descriptors;
+    file_storage["desc"] >> descriptors;
+
+    // Release the file
+    file_storage.release();
+
+    return descriptors;
+}
+
+std::map<int,std::string> convert_files2map(const std::vector<std::string> &paths)
+{
+	std::map<int, std::string> out;
+
+	for (auto path: paths)
+	{
+		std::size_t lastSlashPos = path.find_last_of("desc");
+
+		// Find the last '.' character
+		std::size_t lastDotPos = path.find_last_of(".");
+
+		// Extract the "id" between the last '/' and the last '.'
+		
+		if (lastSlashPos != std::string::npos && lastDotPos != std::string::npos && lastDotPos > lastSlashPos) {
+			int id;
+			id = std::atoi(&path.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1)[0]);
+			out[id] = path;
+		}
+	}
+	return out;
+}
+
+std::vector<int> read_nonduplicates(const std::string &fname)
+{
+	std::ifstream file(fname);
+	std::vector<int> numbers;
+    
+	if (!file.is_open()) {
+        std::cerr << "Could not open the file!" << std::endl;
+        return numbers;
+    }
+
+    int number;
+    while (file >> number) {
+        numbers.push_back(number);
+    }
+
+    file.close();
+	return numbers;
+}
+
+void train_incremental(
+	const std::vector<std::string> &dataset_files,
+	const std::string &fileNameReferences,
+	const std::string &fileNameDescriptors,
+	bool detect_describe=true)
+{
+
 	ParametersMap params;
-	//param.insert(ParametersPair(Parameters::kRGBDCreateOccupancyGrid(), "true")); // uncomment to create local occupancy grids
-
-	// Create RTAB-Map to process OdometryEvent
-	std::vector<std::string> files_in_dir;
-	get_files(files_in_dir);
-	std::sort(files_in_dir.begin(), files_in_dir.end());
-
-	int id = 0;
 	Rtabmap * rtabmap = new Rtabmap();
 	rtabmap->init(params);
 	Memory* memory = rtabmap->getMemoryC();
-	VWDictionary* vwd = memory->getVWDictionaryC();
+	VWDictionary* vwd = memory->getVWDictionaryC(); 
 
-	//vwd->setFixedDictionaryDBOW2("/home/gvasserm/dev/ORB_SLAM2/Vocabulary/ORBvoc.txt");
+	std::map<int, std::string> path_map = convert_files2map(dataset_files);
+	vwd->setIncrementalDictionary();
+
+	std::vector<int> signature_ids = read_nonduplicates("duplicates_20240221_072415536.csv");
+	
+	// The paths are automatically sorted by their IDs due to the nature of std::map
+    // Iterate over the map
+
+	//for (const auto& pair : path_map)
+	size_t N = signature_ids.size();
+	for(int id : tqdm::range(N))
+	{
+		//int id = pair.first;
+		// if (id%3!=0){
+		// 	continue;
+		// }
+		//std::string f = pair.second;
+		int id_ = signature_ids[id];
+		std::string f = path_map[id_];
+		//std::cout << f << std::endl;
+
+		cv::Mat features;
+		
+		if(detect_describe){
+			cv::Ptr<cv::ORB> orb = cv::ORB::create(2000);
+			cv::Mat im = cv::imread(f);
+			std::vector<cv::KeyPoint> keypoints;
+			orb->detect(im, keypoints);
+			orb->compute(im, keypoints, features);
+		}
+		else{
+			features = load_descriptors(f);
+		}
+		vwd->update();
+		std::list<int> words = vwd->addNewWords(features, id_);
+		// if(id >= 225){
+		// 	break;
+		// }
+		id++;
+	}
+	vwd->update();
+	vwd->deleteUnusedWords();
+	std::cout << "Number of words:" << vwd->getIndexedWordsCount() << std::endl;
+	vwd->exportDictionary(&fileNameReferences[0], &fileNameDescriptors[0]);
+	rtabmap->close(false);
+	return;
+}
+
+std::map<int, float> test_rtabmap(
+	const std::string &fileNameDescriptors, 
+	std::string &database_path,
+	const int key_id,
+	bool detect_describe=true)
+{
+
+	ParametersMap params;
+	Rtabmap * rtabmap = new Rtabmap();
+	rtabmap->init(params);
+	Memory* memory = rtabmap->getMemoryC();
+	VWDictionary* vwd = memory->getVWDictionaryC(); 
+	vwd->setFixedDictionary(&fileNameDescriptors[0]);
+	std::cout << "Number of words:" << vwd->getIndexedWordsCount() << std::endl;
+
+	std::vector<std::pair<int, float>> scores;
+
+	std::string path2file = database_path + "/" + std::to_string(key_id) + ".csv";
+	load_loop_closures(path2file, scores);
 
 	std::map<int, std::list<int>> wordIds;
 	std::map<int, float> wordC;
 
-	if (true)
+	std::list<int> query_ids;
+	for (const auto &s: scores)
 	{
-		for (const auto &f : files_in_dir)
-		{
-
-			if (id > 0)
-			{
-				cv::Mat im = cv::imread(f);
-				cv::Ptr<cv::ORB> orb = cv::ORB::create(1000);
-				std::vector<cv::KeyPoint> keypoints;
-				cv::Mat features;
-				orb->detect(im, keypoints);
-				orb->compute(im, keypoints, features);
-				std::list<int> wi = vwd->addNewWords(features, id);
-				// std::vector<int> w = vwd->findNN(features);
-				vwd->update();
-				// wordIds[id] = wi;
-				// wordC[id] = wi.size();
-				// int s = vwd->getVisualWords().size();
-
-				if (false)
-				{
-					cv::Mat image_with_keypoints;
-					drawKeypoints(im, keypoints, image_with_keypoints);
-
-					// Display the original image and the one with keypoints
-					imshow("Original Image", im);
-					imshow("Image with Keypoints", image_with_keypoints);
-					waitKey(0);
-					// std::cout << features.rows << std::endl;
-					// std::cout << s << std::endl;
-					// s = vwd->getVisualWords().size();
-					// std::cout << s << std::endl;
-				}
-			}
-			id++;
-		}
-	}
-
-	//std::cout << wordC[0] << std::endl;
-
-	std::map<int, DBoW3::BowVector> bowVectors;
-	if (true)
-	{
-		vwd->setFixedDictionary();
-		id = 0;
-		for (const auto &f : files_in_dir) 
-		{
-			cv::Mat im = cv::imread(files_in_dir[id]);
-			cv::Ptr<cv::ORB> orb = cv::ORB::create(1000);
+		int sid = s.first;
+		std::string f = database_path + "/desc" + std::to_string(sid) + ".yml";
+		cv::Mat features;
+		if(detect_describe){
+			cv::Ptr<cv::ORB> orb = cv::ORB::create(2000);
+			cv::Mat im = cv::imread(f);
 			std::vector<cv::KeyPoint> keypoints;
-			cv::Mat features;
 			orb->detect(im, keypoints);
 			orb->compute(im, keypoints, features);
-			wordIds[id] = vwd->addNewWords(features, id);
-			wordC[id] = wordIds[id].size();
-
-			DBoW3::BowVector mBowVec;
-    		DBoW3::FeatureVector mFeatVec;
-
-			std::vector<cv::Mat> vCurrentDesc = toDescriptorVector(features);
-			memory->_vocabulary->transform(vCurrentDesc, mBowVec, mFeatVec, 4);
-			bowVectors[id] = mBowVec;
-			
-			// std::vector<int> wi = vwd->findNN(features);
-			// std::list<int> lst(wi.begin(), wi.end());
-			// wordIds[id] = lst;
-			// wordC[id] = wordIds[id].size();
-			// vwd->update();
-			id++;
 		}
+		else{
+			features = load_descriptors(f);
+		}
+		wordIds[sid] = vwd->addNewWords(features, sid);
+		//vwd->update();
+		wordC[sid] = wordIds[sid].size();
+		query_ids.push_back(sid);
+	}
+
+	std::string f = database_path + "/desc" + std::to_string(key_id) + ".yml";
+	cv::Mat features;
+	if(detect_describe){
+		cv::Ptr<cv::ORB> orb = cv::ORB::create(2000);
+		cv::Mat im = cv::imread(f);
+		std::vector<cv::KeyPoint> keypoints;
+		orb->detect(im, keypoints);
+		orb->compute(im, keypoints, features);
+	}
+	else{
+		features = load_descriptors(f);
+	}
+
+	wordIds[key_id] = vwd->addNewWords(features, key_id);
+
+	int N = wordC.size();
+	auto start_time = std::chrono::high_resolution_clock::now();
+	std::map<int, float> likelihood = computeLikelihood(vwd, query_ids, wordIds[key_id], wordC, N);
+	auto end_time = std::chrono::high_resolution_clock::now();
+	// Calculate the elapsed time in milliseconds
+    auto elapsed_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    std::cout << "Elapsed time: " << elapsed_time_ms << " milliseconds" << std::endl;
+	rtabmap->close(false);
+	return likelihood;
+}
+
+
+std::map<int, float> test_fixed(
+	const std::string &fileNameDescriptors, 
+	const std::vector<std::string> &dataset_files,
+	std::list<int> &query_ids, 
+	const int key_id,
+	bool detect_describe=true)
+{
+
+	ParametersMap params;
+	Rtabmap * rtabmap = new Rtabmap();
+	rtabmap->init(params);
+	Memory* memory = rtabmap->getMemoryC();
+	VWDictionary* vwd = memory->getVWDictionaryC(); 
+	vwd->setFixedDictionary(&fileNameDescriptors[0]);
+	std::cout << "Number of words:" << vwd->getIndexedWordsCount() << std::endl;
+
+	std::map<int, std::list<int>> wordIds;
+	std::map<int, float> wordC;
+	std::vector<cv::Mat> features_all(dataset_files.size());
+	
+	int id = 0;
+	for (const auto &f: dataset_files)
+	{
+		cv::Mat features;
+		if(detect_describe){
+			cv::Ptr<cv::ORB> orb = cv::ORB::create(2000);
+			cv::Mat im = cv::imread(f);
+			std::vector<cv::KeyPoint> keypoints;
+			orb->detect(im, keypoints);
+			orb->compute(im, keypoints, features);
+		}
+		else{
+			features = load_descriptors(f);
+		}
+		wordIds[id] = vwd->addNewWords(features, id);
+		vwd->update();
+		wordC[id] = wordIds[id].size();
+		features_all[id] = features;
+		id++;
 	}
 
 	int N = wordC.size();
+	std::map<int, float> likelihood = computeLikelihood(vwd, query_ids, wordIds[key_id], wordC, N);
+	rtabmap->close(false);
+	return likelihood;
+}
 
-	std::list<int> ids = {1, 3, 5, 29};
-	std::map<int, float> likelihood = computeLikelihood(vwd, ids, wordIds[0], wordC, N);
+int main(int argc, char * argv[])
+{
+	std::string fileNameReferences = "ref.txt";
+	std::string fileNameDescriptors = "DictionaryLC4large_online.txt";
 	
-	std::map<int, double> scores;
-	for(std::list<int>::const_iterator i=ids.begin(); i!=ids.end(); ++i)
-	{
-		DBoW3::BowVector BowVec1 = bowVectors[0];
-		DBoW3::BowVector BowVec2 = bowVectors[*i];
-		scores[*i] = memory->_vocabulary->score(BowVec1, BowVec2);
+	if (true){
+		std::string database_path = "/home/gvasserm/dev/aicv_amr_ws/results_lc4large_map_def/";
+		int key_id = 305;
+		std::map<int, float> likelihood = test_rtabmap(fileNameDescriptors, database_path, key_id, false);
+		cerealizeLikelihood(std::to_string(key_id) + "fixed.csv", likelihood);
+		return -1;
+	}
+
+	if(false){
+		std::string data_path = "results_gftt_default_ptk/";
+		std::vector<std::string> dataset_files;
+		std::vector<std::string> extension ={".yml"};
+		get_files(data_path, dataset_files, extension);
+		std::sort(dataset_files.begin(), dataset_files.end());
+	
+		train_incremental(
+			dataset_files,
+			fileNameReferences,
+			fileNameDescriptors, 
+			false);
 	}
 	
-	rtabmap->close(false);
 	return 0;
 }
